@@ -1,4 +1,4 @@
-# dODo Paper repository
+# dODo Paper repository [![Build Status](https://travis-ci.com/CodeLionX/dODo-paper.svg?token=pqFUU2qudhkNenBcNwxf&branch=master)](https://travis-ci.com/CodeLionX/dODo-paper)
 Paper about https://github.com/CodeLionX/dODo
 
 ## Contents
