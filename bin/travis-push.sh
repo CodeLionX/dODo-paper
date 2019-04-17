@@ -16,7 +16,7 @@ result=$?
 # only push changes if the commit was successful
 if [ ${result} -eq 0 ]; then
   echo "A new PDF file exists. Uploading it to GitHub"
-  git remote add github "https://${GH_TOKEN}@github.com/CodeLionX/dODd-paper.git" >/dev/null 2>&1
+  git remote add github "https://${GH_TOKEN}@github.com/CodeLionX/dODo-paper.git" >/dev/null 2>&1
   git push --quiet --set-upstream github ${TRAVIS_BRANCH} >/dev/null 2>&1
 else
   echo "No changes. Skipping upload"
