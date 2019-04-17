@@ -23,13 +23,13 @@ cache:
 # main file: paper.tex
 # output filename: dODo-paper.pdf
 script:
-- "./bin/build.sh paper dODo-paper.pdf"
+- ./bin/build.sh paper dODo-paper.pdf
 
 # use deployment to push back the resulting PDF into the corresponding branch
 deploy:
   skip_cleanup: true
   provider: script
-  script: "./bin/travis-push.sh dODo-paper.pdf"
+  script: ./bin/travis-push.sh dODo-paper.pdf
   on:
     all_branches: true
 
