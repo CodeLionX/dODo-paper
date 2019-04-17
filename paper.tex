@@ -1,0 +1,182 @@
+% Currently this document is written in English
+% !TeX encoding = UTF-8
+% !TeX spellcheck = en_US
+
+%Ensure that all odl school LaTeX habits are remarked
+\RequirePackage[l2tabu, orthodox]{nag}
+
+%German: remove "english"
+\documentclass[english,utf8,biblatex]{lni-tex/lni}
+% Nice tables using \toprule, \midrule, \bottomrule
+\usepackage{booktabs}
+% subfigures and subcaptions
+\usepackage{subcaption}
+
+%% Begin: Drawings
+% use standalone and tikz for high-fid. drawings
+
+% standalone package and config
+\usepackage{standalone} % For pre-compiled pictures
+\standaloneconfig{mode=buildnew} % only build image if source file is newer
+
+% tikz package and config
+\usepackage{tikz} % For Tikz pictures
+\usetikzlibrary{
+  positioning,
+  fit,
+  arrows,
+  calc,
+  backgrounds
+}
+\usepackage{pgf-umlsd} % UML sequence diagrams
+\usepackage[simplified,school]{pgf-umlcd} % UML class diagrams
+% UML class diagram overrides
+\renewcommand{\umldrawcolor}{black}
+\renewcommand{\umlfillcolor}{white}
+\tikzstyle{package}=[font=\bf]
+% UML class diagram dactor env
+\newenvironment{dactor}[1]{
+  \def\umlcdDactorName{#1}
+  \def\umlcdPackageFit{}
+}{
+  \begin{pgfonlayer}{background}
+    \node[umlcd style, draw, inner sep=0.5cm, fit=\umlcdPackageFit] (\umlcdDactorName) {};
+    \node[umlcd style, draw, outer ysep=-0.5, anchor=south west] (\umlcdDactorName caption) at
+    (\umlcdDactorName.north west) {\bf\umlcdDactorName : Dactor};
+  \end{pgfonlayer}
+}
+% pgfplots
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.16} % set pgfplots compatibility to version 1.16
+%% End: Drawings
+
+%% Begin: Biblatex
+
+%for easy quotations: \enquote{text}, also required by biblatex
+\usepackage{csquotes}
+% biblatex is included with LNI-class option: `biblatex`, only set bibliography-file:
+\bibliography{paper}
+
+% Clear fields we do not need
+\iffalse
+\AtEveryBibitem{%
+  \ifentrytype{article}{%
+  }{%
+    \clearfield{doi}%
+    \clearfield{issn}%
+    \clearfield{url}%
+    \clearfield{urldate}%
+  }%
+  \ifentrytype{inproceedings}{%
+  }{%
+    \clearfield{doi}%
+    \clearfield{issn}%
+    \clearfield{url}%
+    \clearfield{urldate}%
+  }%
+}
+\fi
+%% End: Biblatex
+
+%% Begin: lstlistings
+
+% Scala highlighting
+\lstdefinelanguage{scala}{
+  morekeywords={%
+    abstract,case,catch,class,def,do,else,extends,
+    false,final,finally,for,forSome,if,implicit,import,lazy,
+    match,new,null,object,override,package,private,protected,
+    return,sealed,super,this,throw,trait,true,try,type,
+    val,var,while,with,yield},
+  otherkeywords={=>,<-,<\%,<:,>:,\#,@},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[n]{/*}{*/},
+  morestring=[b]",
+  morestring=[b]',
+  morestring=[b]"""
+}[keywords,comments,strings]
+
+% configuration of lstlisting
+\lstset{%
+	xleftmargin=0.5cm, % expected by LNI
+    captionpos=b,      % expected by LNI
+    fontadjust=true,
+    columns=[c]fixed,
+    keepspaces=true,
+    tabsize=2,
+    basicstyle=\renewcommand{\baselinestretch}{0.95}\ttfamily,
+    commentstyle=\itshape,
+    keywordstyle=\bfseries,
+    mathescape=true,
+    escapechar=§,
+}
+
+% macro for inline code
+\newcommand{\code}[1]{\lstinline[flexiblecolumns=true,basicstyle=\renewcommand{\baselinestretch}{0.95}\ttfamily]{#1}}
+
+%% End: lstlistings
+
+%% Begin: Acronyms
+\usepackage[acronym]{glossaries}
+\glsdisablehyper
+
+% define acronyms here:
+\newacronym{jvm}{JVM}{Java Virtual Machine}
+\newacronym{rdbms}{RDBMS}{relational database management system}
+\newacronym{orm}{ORM}{object-relational mapping}
+\newacronym{oop}{OOP}{Object-oriented Programming}
+
+% define special names here (we do not create a glossary, so no descriptions are required)
+\newglossaryentry{dactor}{name={Dactor},plural={Dactors},description={}}
+\newglossaryentry{functor}{name={Functor},plural={Functors},description={}}
+\newglossaryentry{relation}{name={relation},plural={relations},description={}}
+%% End: Acronyms
+
+
+%% Begin: Macros
+\newcommand{\reactdb}[1]{\textsc{ReactDB}}
+%% End: Macros
+
+
+%% correct bad hyphenation here
+\hyphenation{net-works semi-conduc-tor}
+
+
+% Start of page count 
+% ----------------------- filled out by publisher/editor
+\startpage{1}
+\editor{Vorname Nachname et al.}
+\booktitle{Konferenztitel}
+% -----------------------
+
+\author[Sebastian Schmidl \and Juliane Waack]{%
+Sebastian Schmidl, Juliane Waack\footnote{Hasso-Plattner-Institut, University of Potsdam, Prof.-Dr.-Helmert-Str. 2-3, 14482 Potsdam, \email{{sebastian.schmidl,juliane.waack}@student.hpi.de}}
+}
+\title[Distributed Order Dependency]{Distributed Order Dependency}
+
+\begin{document}
+\maketitle
+
+% Set to number of authors!
+% Authors use each one footnote counter, set this to align the remaining ones.
+% E.g. 2 authors --> set to 2, next footnote will be 3
+\setcounter{footnote}{2}
+
+\begin{abstract}
+  Abstract goes here.
+\end{abstract}
+
+\begin{keywords}
+Actor Model \and Akka \and Distributed Computing \and Parallelization
+\end{keywords}
+
+% Contents
+% --------
+\input{paper_toc}
+% --------
+
+% bibliography
+\printbibliography
+
+\end{document}

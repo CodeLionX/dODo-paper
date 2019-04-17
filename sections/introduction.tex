@@ -1,0 +1,85 @@
+% !TeX root = ../paper.tex
+% !TeX encoding = UTF-8
+% !TeX spellcheck = en_US
+
+\section{Introduction}\label{sec:intro}
+
+  % \subsection{Motivation}
+  % Impedance mismatch between data and application logic tier
+  %  ORM’s try to solve this problem
+  % Database scalability
+
+  % motivational statement about importance of parallelization for data processing [sources]
+  % "die wichtigsten Motivationspunkte könnt ihr ja aus dem survey ziehen: Objekt mapping explizit machen, skalierbarkeit, fehlertolleranz, wartbarkeit des codes etc. und alles insbesondere wenn es mit stored procedures los geht; die sind der ganz große feind ;-)"
+  % data processing close to data storage [sources]
+  
+  % \subsection{Our Concept}
+  % summarize \cref{sec:dactors} and \cref{sec:actor_database_systems} in 2-3 sentences ("auch ein paar sätze mehr")
+
+  % \subsection{Contribution}
+  % can we propose our framework? - No "was, bei dem ihr innovativ was neues als erste gemacht ahbt"
+  % "Übertragung der Idee von Actor Databases auf das Akka Framework"
+
+  % QUESTION TO TORSTEN: de-facto this is disputable as our framework is more of a application dev framework, so arguably we push data tier into app tier
+  % "stellt den vergleich am besten mit einem OR-Mapper wie hybernate her oder JPA. Auch mit einer Datenbank nutzt man i.d.R. frameworks, die den Datenverkehr und das Übersetzen der Business-Objekte in Datenbank-Objekte regeln und somit den Entwicklungsprocess wie ein framework beeinflussen. Man bindet euch wie jede andere bibliothek in ein Programm ein und da dürft ihr wie all diese anderen bibliotheken gerne von frameworks sprechen. der große unterschied ist, dass ihr ganz direkt und nah an den Daten seid und so dinge machen könnt, die andernfalls stored procedures oder andere tiefe Eingriffe aus dem Anwendungscode in die separate Datenbank erfordern. Plus das ganze Datenmanagement ist automatisch verteil-, parallelisier- und skalierbar."
+
+  % \subsection{Paper Overview}
+  % summarize and reference all following chapters
+
+  Most web-based applications process data at ever growing rates.
+  Whether user logins, the processing and storage of sensor data, or dynamic information provisioning, data is at the center of online applications.
+  Cluster or cloud deployments and multi-core hardware architectures allow scaling application logic in terms of computational power.
+  Data management systems, however, are at risk of becoming the bottleneck in data-centric software systems.
+  Such applications create an increasing demand for scalable data storage solutions, that are capable of fulfilling real-time requirements for OLTP workloads at low latency. % too long, use system instead of 'applications', maybe lose the OLTP
+
+  Traditionally, system architectures for these types of software are comprised in two tiers:
+  An application tier containing the bulk of the business logic, as well as a data tier, storing the application's data.
+  The separation of concerns within this design in terms of concrete functionality depends on the choice of data storage solution.
+  A \gls{rdbms} enables data manipulation and the execution of most data-related computation in the data tier by using e.g. stored procedures and a complex, declarative query language.
+  However, the monolithic design of conventional \glspl{rdbms} proves a hurdle for scalability and reduces modularity, which has a negative impact on code maintainability. % todo source (maybe from manifesto/reactors)
+  More recently key-value storage solutions have gained popularity especially for highly scalable online applications.
+  This is due to the fact that their less rigid schema guarantees allow for improved scalability. % source
+  The trade-off of this solution is having to offload much of the data-handling logic into the application tier, thereby increasing load on the application as well as not keeping true to the separation of concerns.
+
+  In either case, the data and application tier do not necessarily share a format for data objects.
+  Application logic and database exhibit differences in available data types and modelling capabilities.
+  \Gls{oop} languages provide concepts, such as inheritance, polymorphism, and nested objects.
+  They enforce strict object encapsulation.
+  \Glspl{rdbms} are not able to express all of the same concepts due to the representation of data as relations in tables. % maybe it is necessary to elaborate on this
+  While data storage solutions with a less rigid schema, such as document-oriented databases, are able to represent e.g. nested objects, they still face the same problems as \glspl{rdbms} with regard to data formats, inheritance, and encapsulation.
+  The described set of difficulties when persisting application state and data objects in a database is commonly referred to as \textit{object-relational impedance mismatch}.
+  The use of \gls{orm} tools, such as Hibernate for Java or Active Record for Ruby on Rails, is one approach to provide a middle tier for mapping between the data formats of the application and data tier.
+  % However, shortcoming of this approach
+
+  \Citet{manifesto} call for a new paradigm for designing a scalable data storage solution using the Actor model.
+  The core primitive in this model are actors, which are objects comprised of state and behavior that execute computational tasks concurrently.
+  Individual actors communicate with each other exclusively via asynchronous message passing.
+  Incoming messages are stored in a mailbox allowing for the separate and independent processing of each message.
+  When receiving a message an actor can modify its state, send a finite amount of messages to other actors, and create new actors.
+  An actor's internal state is only available to said actor, which encourages a shared-nothing system architecture.
+  The self-contained nature of actors and the fact that, through asynchronous message passing, actors provide a lock-free concurrency model, allows for naturally scaling out applications and systems~\cite{vernon2015reactive}.
+  % \enquote{The actor model brings OOP back to the system level with actors appearing to developers very much like the familiar model of interacting objects}~\cite{bernstein:orleans}.
+  \Citeauthor{manifesto} propose an implementation of the data tier using the actor model as a logically distributed runtime.
+  They predict that this programming abstraction will allow for a modular, scalable application design.
+
+  We build on this idea and present an application development framework for actor-based data-centric applications.
+  In this framework actors employ relational structures internally to manage application state and data
+  and provide functionality based on this data in the form of actor behavior.
+  Since these actors are not part of a dedicated database runtime, but are defined and instantiated using the application framework, this approach dissipates the strict line between data and application tier.
+  It allows for utilizing and interacting with data objects in the same representation throughout business logic and data storage.
+
+  With this framework we make the following contributions:
+  We introduce domain actors (\glspl{dactor}) to model application data in an Akka-based actor database system, similarly to the work of \citeauthor{Shah:reactdb} on reactors \cite{Shah:reactdb}.
+  \Glspl{dactor} encapsulate application data and logic, therefore bridging the aforementioned impedance mismatch between data and the application logic tier.
+  We implement a SQL-like data interface for defining internal \gls{dactor} logic, and provide Functors to allow users to define application logic relying on data contained within multiple \glspl{dactor}.
+  We also present experimental results on the memory overhead introduced by using Akka actors for data management in this manner to demonstrate the feasibility of this approach.
+
+  To our knowledge, we present the first implementation of this concept using the Akka framework.
+  Comparable, existing work has been presented using the virtual actor concept provided by the Orleans framework for Microsoft .NET.
+  Therefore, we discuss differences between the classical notion of actors and the virtual actor concept in \cref{sec:related_work}.
+  In this section, we also give an outline of the history of actor model implementations as well as the characteristics of \textit{Actor Database Systems} as proposed by \citeauthor{manifesto}.
+  In \cref{sec:concept}, we outline our approach conceptually in more detail,
+  before explicitly describing the implementation of our proof-of-concept framework, as well as some examples for usage patterns in \cref{sec:framework}.
+  We present setup and evaluation of experiments on the memory overhead introduced by the use of actors for data storage using our framework in \cref{sec:experiments},
+  and offer a concluding statement about this and future work in \cref{sec:conclusion}.
+  
