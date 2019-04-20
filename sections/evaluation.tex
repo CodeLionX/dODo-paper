@@ -4,6 +4,15 @@
 
 \section{Evaluation}\label{sec:evaluation}
 
- %TODO What aspect of distribution specific challenges to focus on?
- 
- Use same datasets as previous works for comparison (see table 6 from \citep{consonni})
+  %TODO What aspect of distribution specific challenges to focus on?
+
+  Use same datasets as previous works for comparison (see table 6 from \citep{consonni}, was taken from HPI homepage).
+  The link in the paper was broken, this is the updated one: \url{https://hpi.de/naumann/projects/repeatability/data-profiling/fds.html}.
+
+  \begin{enumerate}
+    \item Find same number of ODs than related approaches (quality metric). If we have a gold standard: compare results to gold standard.
+    \item Measure single node time (slightly higher than OCDDISCOVER)
+    \item Measure scaling across columns, rows.
+    \item Measure scaling across nodes (cores).
+    \item Test robustness via killing nodes or jamming network.
+  \end{enumerate}

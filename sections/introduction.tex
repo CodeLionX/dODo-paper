@@ -4,21 +4,22 @@
 
 \section{Introduction}\label{sec:intro}
 
-   \subsection{Motivation}	
-	%TODO What are Order Dependencies? Give full definition?
-	%	$p_X \succcurlyeq p_Ys$	
+  \subsection{Motivation}
+  % TODO What are Order Dependencies? Give full definition?
+  % $p_X \succcurlyeq p_Ys$
 	
-	Uses for ODs:
-   \begin{itemize}
-		\item Query Optimization
-		\item Data quality (integrity constraints)
-		\item Index selection
-	\end{itemize}
-	
-	Challenges:
-	\begin{itemize}
-		\item Inference co-NP-complete \citep{ginsburg}
-		\item best known algorithms between $O(n!)$ \citep{consonni} and $O(2^n)$ \citep{szlichta:discovery} with n being the number of attributes 
-		\item use distribution to improve runtime 
-	\end{itemize}		  
+  Uses for ODs~\cite{szlichta:fundamentals}:
+  \begin{itemize}
+    \item Query Optimization
+    \item Data quality (integrity constraints)
+    \item Index selection
+  \end{itemize}
+
+  Challenges:
+  \begin{itemize}
+    \item Inference co-NP-complete \citep{ginsburg}
+    \item best known algorithms between $O(n!)$ \citep{consonni} and $O(2^n)$ \citep{szlichta:discovery} with n being the number of attributes 
+  \end{itemize}
+
+  Use distribution to improve runtime and memory usage, because SotA-algorithms take too long or exceed memory limits ( >5h, >110GB for \textsc{flight\_1k}-dataset)
   
