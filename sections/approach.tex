@@ -5,3 +5,18 @@
 \section{Approach}\label{sec:approach}
 
  %TODO
+
+\begin{itemize}
+	\item collect and persist partial results
+	\item master worker pattern
+	\item at the beginning permutation tree stored only on master (split if it gets too big)
+	\item parallelize additional parts of the algorithm (initial pruning)
+	\item reaper pattern for clean shutdown
+	\item three options for holding the input table:
+	\begin{itemize}
+		\item full replication
+		\item split column wise
+		\item split row wise
+	\end{itemize}
+	
+\end{itemize}
