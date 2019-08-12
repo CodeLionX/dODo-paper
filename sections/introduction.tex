@@ -3,26 +3,29 @@
 % !TeX spellcheck = en_US
 
 \section{Introduction}\label{sec:intro}
+\subsection{Order Dependencies}
+\begin{itemize}
+	\item What are ODs?
+	\item Why are they useful?
 	\begin{itemize}
-		\item Distribution aspect
-		\begin{itemize}
-			\item Why use distributed systems/ what are distributed systems? (scalabilty)
-			\item Explain Nodes and Actors?
-		\end{itemize}		
-		\item Order Dependencies
-		\begin{itemize}
-			\item What are they?
-			\item Why are they useful?
-			\begin{itemize}
-				\item Query optimization
-				\item Data quality (find constraints, help understand semantics)
-				\item support index selection
-			\end{itemize}
-			\item What are the challenges? 
-			\begin{itemize}
-				\item Large searchspace (Long runtime and large memory-needs)
-				\item Defining Minimality (Unhelpful definition of minimality in Naumann paper, incorrect one in Consonni paper)
-			\end{itemize}
-		\end{itemize}		 
+		\item Query optimization
+		\item Data quality (find constraints, help understand semantics)
+		\item support index selection
 	\end{itemize}
+\end{itemize}	
+
+\subsection{Order Dependency Discovery}
+What are the challenges? 
+\begin{itemize}
+	\item Defining Minimality (Unhelpful definition of minimality in Naumann paper, incorrect one in Consonni paper)	
+	\item Large searchspace (Long runtime and large memory-needs)
+	\item current agorithms slow on large datasetz 
+	\item Therefore need scalability -> distribution
+\end{itemize}
+
+\subsection{Distribution}
+\begin{itemize}
+	\item What are distributed Systems? Why are they useful?
+	\item What is the actor model? Why use it here?	
+\end{itemize}
 
