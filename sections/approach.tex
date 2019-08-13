@@ -4,12 +4,19 @@
 
 \section{Approach}\label{sec:approach}
  
-\subsection{OCDDISCOVER}
-\begin{itemize}
-	\item Idea: OD = OCD + FD
-	\item Pruning rules used to build search tree
-	\item Where was their mistake?
-\end{itemize}
+\subsection{\textsc{ocddiscover}}
+%TODO add references
+The \textsc{ocddiscover} algorithm creates the searchspace for finding \emph{order dependencies} over \emph{order compatibilities}.
+This can be done, because they prove that whenever there is an \emph{order dependency}, there is also an \emph{order compatibility} and a \emph{functional dependency}.
+Using \emph{order compatibilities} reduces the search space, because they are symmetrical. \\
+Consonni et al build the search tree, by testing each candidate for being order compatible. 
+If it is not, no children are generated for this candidate.
+If it is order compatible the candidate is checked for being order dependent. 
+If it is we have found a minimal order dependency and no children need to be checked, as they would not be minimal.
+If it is not, children to be checked later are generated. 
+This happens by adding a column that does not yet appear on either side of the candidate once to its left and once to its right side. \\
+Consonni et al proved in their paper, that they would be able to find all minimal \emph{Order dependencies} using this method of generating candidates.
+However, as Szlichta et al showed in their Errata Note, Consonni et al made a mistake in one of their proofs and this method of building the searchspace does not create minimal \emph{Order dependencies} with repeated prefixes.
 
 \subsection{Our architecture}
 \subsubsection{System architecture}
