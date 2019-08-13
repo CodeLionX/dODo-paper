@@ -10,9 +10,14 @@
   It differentiates from the point-wise ordering by considering list of columns instead of sets.
   This leads to a lexicographical ordering of tuples, as by the \texttt{order by} operator in SQL.
 
-  \begin{itemize}
-    \item Data profiling includes dependency discovery
-    \item FDs, etc. but order dependency more complex through a larger search space than for FDs
-    \item Former solutions by \cite{langer} (incomplete), \cite{szlichta:discovery} and \cite{consonni}.
-    \item Our project based on \cite{consonni} (already parallelized with multi-threading). (Explained in \ref{sec:approach})
-  \end{itemize}
+%TODO go into more detail about how the algorithms work?
+\citeauthor{langer} published the first algorithm to find all minimal order dependencies based on \citeauthor{szlichta:fundamentals}'s definition. 
+It is called \texttt{order} and has a factorial runtime.\\
+When publishing their own algorithm \texttt{fastod}, \citeauthor{szlichta:discovery} showed, that \citeauthor{langer}'s definition of minimality was incomplete. 
+\texttt{fastod} has an exponential worst time complexity \citep{szlichta:discovery}.\\
+When introducing the algorithm \texttt{ocddiscover}, \citeauthor{consonni} claimed, that a provided implementation of \texttt{fastod} did not find all order dependencies. 
+\texttt{ocddiscover} has a factorial runtime but was shown to outperform \texttt{fastod} on some datasets. 
+It is also capable of multithreating, which makes it easy to adapt to a distributed system.
+This was the state of published research when we started on this project, which is why we based our own algorithm on \texttt{ocddiscover}. \\
+Since then, Szlichta et al have published an Errata Note demonstrating an error in \citeauthor{consonni}'s proof of minimality and explaining, how \citeauthor{consonni} misinterpreted \texttt{fastod}'s results.
+Since the goal of our seminar was the distribution of an already existing algorithm with a focus on reliability, however, and scalability, we decided to continue working on \texttt{ocddiscover}.
