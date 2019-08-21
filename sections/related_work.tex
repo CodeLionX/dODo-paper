@@ -1,0 +1,18 @@
+% !TeX root = ../paper.tex
+% !TeX encoding = UTF-8
+% !TeX spellcheck = en_US
+
+\section{Related Work}\label{sec:related_work}
+  The concept of order dependencies was first introduced in the context of database systems by \citeauthor{ginsburg}~\cite{ginsburg} as \textit{point-wise ordering}.
+  \citeauthor{ginsburg}'s definition specified that a set of columns orders another set of columns.
+
+  \citeauthor{szlichta:fundamentals}~\cite{szlichta:fundamentals} later introduced another definition for order dependencies, which was used by the following research in this area \cite{consonni, langer, szlichta:discovery} and is also the basis of this work.
+  It differentiates from the point-wise ordering by considering list of columns instead of sets.
+  This leads to a lexicographical ordering of tuples, as by the \texttt{order by} operator in SQL.
+
+  \begin{itemize}
+    \item Data profiling includes dependency discovery
+    \item FDs, etc. but order dependency more complex through a larger search space than for FDs
+    \item Former solutions by \cite{langer} (incomplete), \cite{szlichta:discovery} and \cite{consonni}.
+    \item Our project based on \cite{consonni} (already parallelized with multi-threading). (Explained in \ref{sec:approach})
+  \end{itemize}

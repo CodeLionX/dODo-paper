@@ -1,0 +1,48 @@
+% !TeX root = ../paper.tex
+% !TeX encoding = UTF-8
+% !TeX spellcheck = en_US
+
+\section{Approach}\label{sec:approach}
+ 
+\subsection{OCDDISCOVER}
+\begin{itemize}
+	\item Idea: OD = OCD + FD
+	\item Pruning rules used to build search tree
+	\item Where was their mistake?
+\end{itemize}
+
+\subsection{Our architecture}
+\begin{itemize}
+	\item Whole system
+	\begin{itemize}
+		\item Peer-to-peer after seednode shared data
+		\item Every node holds all data
+		\item Workstealing
+		\item State Replication
+	\end{itemize}
+	\item Within every Node
+	\begin{itemize}
+		\item Master Worker
+		\item Master holds state (Candidate queue) + does Workstealing
+		\item Pull-based work distribution
+		\item State Replicator for sharing and recovering states (via streaming)
+		\item Data Holder for holding and sharing data (via streaming)
+		\item ClusterListener to support node to node communication
+		\item ResultCollector saves results to file (still need to be merged and reduced to unique results in the end)
+		\item Reaper
+	\end{itemize}
+\end{itemize}
+
+\subsection{Communication Protocols}
+% Questions to be answered for each one:
+% What is its purpose? 
+% When is the protocol started and what is the desired outcome? 
+% Who is communicating? 
+% What Messages are being used?
+% What cases need to be covered? (Early outs etc)
+
+\subsubsection{Work Stealing Protocol}
+
+\subsubsection{Downing Protocol}
+
+\subsubsection{State Replication Protocol}
