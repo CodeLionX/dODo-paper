@@ -1,0 +1,23 @@
+% !TeX root = ../paper.tex
+% !TeX encoding = UTF-8
+% !TeX spellcheck = en_US
+
+\section{Conclusion}\label{sec:conclusion}
+
+\begin{itemize}
+\item Summary
+\item real conclusion
+\item future work
+\begin{itemize}
+\item what's not implemented yet (merging of results, deduplication, fixing algorithm)
+\item optimize (sort and compare on multiple columns (consider data types or merge values to one or define ordering over indices?))
+\item interesting questions: how to proove we have founbd all edgecases / formalize protocols
+\item Test memory boundaries, possibly optmize memory consumption (delta protocol?), look at garbage collector overhead
+\item Find and fix work stealing edge cases 
+\item evaluate timeouts
+\item The actor model provides a dynamic aspect. 
+This can be used to run multiple approaches in a single system and to exchange information between them. 
+The goal of this would be to benefit from the advantages of the different approaches and at the same time decreasing their disadvantages.
+Our approach does not make use of this aspect of the actor system so far.
+\end{itemize}
+\end{itemize}

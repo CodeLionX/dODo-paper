@@ -4,34 +4,76 @@
 
 \section{Approach}\label{sec:approach}
  
-\subsection{OCDDISCOVER}
-\begin{itemize}
-	\item Idea: OD = OCD + FD
-	\item Pruning rules used to build search tree
-	\item Where was their mistake?
-\end{itemize}
+\subsection{\textsc{ocddiscover}}
+%TODO add references
+The \textsc{ocddiscover} algorithm creates the searchspace for finding \emph{order dependencies} over \emph{order compatibilities}.
+This can be done, because they prove that whenever there is an \emph{order dependency}, there is also an \emph{order compatibility} and a \emph{functional dependency}.
+Using \emph{order compatibilities} reduces the search space, because they are symmetrical. \\
+Consonni et al build the search tree, by testing each candidate for being order compatible. 
+If it is not, no children are generated for this candidate.
+If it is order compatible the candidate is checked for being order dependent. 
+If it is we have found a minimal order dependency and no children need to be checked, as they would not be minimal.
+If it is not, children to be checked later are generated. 
+This happens by adding a column that does not yet appear on either side of the candidate once to its left and once to its right side. \\
+Consonni et al proved in their paper, that they would be able to find all minimal \emph{Order dependencies} using this method of generating candidates.
+However, as Szlichta et al showed in their Errata Note, Consonni et al made a mistake in one of their proofs and this method of building the searchspace does not create minimal \emph{Order dependencies} with repeated prefixes.
 
 \subsection{Our architecture}
-\begin{itemize}
-	\item Whole system
-	\begin{itemize}
-		\item Peer-to-peer after seednode shared data
-		\item Every node holds all data
-		\item Workstealing
-		\item State Replication
-	\end{itemize}
-	\item Within every Node
-	\begin{itemize}
-		\item Master Worker
-		\item Master holds state (Candidate queue) + does Workstealing
-		\item Pull-based work distribution
-		\item State Replicator for sharing and recovering states (via streaming)
-		\item Data Holder for holding and sharing data (via streaming)
-		\item ClusterListener to support node to node communication
-		\item ResultCollector saves results to file (still need to be merged and reduced to unique results in the end)
-		\item Reaper
-	\end{itemize}
-\end{itemize}
+\subsubsection{System architecture}
+The cluster we use has a \emph{Peer-to-peer} architecture.
+Every node has the same structure and works on the same kinds of tasks.
+Every node also hold the complete dataset, because the checking of \emph{Order Dependency candidates} requires access to the contents of all columns.  
+The \emph{Peer-to-peer} architecture allows every single node to fail without work getting lost or the algorithm needing to be restarted. \\
+The only circumstance during which this is not the case is when the systems is newly started. 
+At the beginning a single node, which we call \emph{Seed node}, is responsible for loading the data, the initial pruning step and the generation of the first set of candidates. 
+If the \emph{Seed node} were to fail during these first steps, the cluster would need to be restarted. 
+As they usually only take a few seconds, though, this seemed to be a reasonable constraint.\\
+To begin working, every node needs the dataset, the information which columns can be pruned and a first set of candidates to check. 
+All nodes that are not the \emph{Seed node} can get the dataset from another node via streaming. 
+Once it is done with pruning, the \emph{Seed node} sends the pruning results to all other nodes in a broadcast.
+A node that joins later can ask any other for this information.
+The distribution of candidates from the \emph{Seed node} to all other nodes in the cluster is done using \emph{Work Stealing} (\ref{protocol:workStealing}), which is described in more detail later.
+
+\subsubsection{Node Architecture}
+Every node in the cluster shares the same actors.
+These are both helpful for parallelizing the tasks each node work on as well as structuring the communication in between nodes.
+\paragraph{Master} 
+The \emph{Master actor} is responsible for holding the state of a node.
+In contains the \emph{Candidate queue} and \emph{Pending queue} and distributes the candidates to the \emph{Worker actors} to be worked on in parallel. 
+We use a pull-based apporach for this distribution of tasks.
+This means that the \emph{Master} only ever responds to \emph{Workers} asking for candidates and therefore does not have to monitor the state of every single \emph{Worker} of the node.
+The \emph{Master} also deals with getting new candidates using \emph{Work Stealing} (\ref{protocol:workStealing}), when the \emph{Candidate Queue} is empty and initiates the node shutdown when the \emph{Downing Protocol} (\ref{protocol:downing}) reveals that all \emph{Order Dependencies} have been found.
+
+\paragraph{Worker}
+A node can have an arbitrary number of \emph{Worker actos}, though the number of available threads - 1 is usually a good estimation for effective ressource usage.
+The \emph{Workers} check candidates, which they get from the \emph{Master} and generate new ones, which they send back for the \emph{Master} to append to the \emph{Candidate Queue}.
+This checking and generating of candidates is the main task of each node and therefore requires the most ressources.
+All \emph{Order Dependencies} and \emph{Order Compatibilities} the \emph{Worker} finds are send to the \emph{Result Collector} to be recorded into a file. 
+
+\paragraph{Data Holder}
+The \emph{Data Holder actor} is responsible for loading and holding the dataset, for which the \emph{Order Dependencies} are to be found. 
+A reference to this dataset is shared with the \emph{Workers} who need it to check candidates.
+If a path to the dataset is provided to the node on start up, it loads it from the file.
+If not, the \emph{Data Holder} asks one of their neighbours in the cluster to provide them the dataset via streaming.
+Once the dataset is loaded, the \emph{Data Holder} notifies the \emph{Master} that the node is ready to start working on checking candidates. 
+
+\paragraph{Result Collector}
+The \emph{Result Collector actor} gets send all found \emph{Order Dependencies} and \emph{Order Compatabilities} by the \emph{Workers}.
+It collects and counts these results and writes them to a file so they can be recovered even if the node fails unexpectedly. 
+
+\paragraph{Cluster Listener}
+The \emph{Cluster Listener actor}'s task is to determine and share who the neighbors of its node are.
+Whenever a new node joins the cluster all previous send it references to their \emph{Master} and \emph{State Replicator actors}.
+The new \emph{Cluster Listener} sends back the corresponding information for its node. \\
+When the ordering of nodes changes because a node joined or left the cluster, the updated neighbours are send to the \emph{State Replicator}.
+In contrast, the \emph{Data Holder} only receives information about the neighboring nodes, when it specifically asks for them, because it only needs the information in the beginning to know whom to ask for the dataset.
+
+\paragraph{State Replicator}
+The \emph{State Replicator} holds the state of its neighboring nodes and shares the \emph{Master's} state with them. 
+This enables us to recover work from unexpectedly failed nodes and is explained in more detail in the \emph{State Replicaton Protocol} (\ref{protocol:stateReplication})
+
+\paragraph{Reaper} 
+The \emph{Reaper Actor} watches all other actors and cleanly shuts down the system once all of them are terminated.
 
 \subsection{Communication Protocols}
 % Questions to be answered for each one:
@@ -41,8 +83,61 @@
 % What Messages are being used?
 % What cases need to be covered? (Early outs etc)
 
-\subsubsection{Work Stealing Protocol}
+\subsubsection{Work Stealing Protocol} \label{protocol:workStealing}
+% Possible picture (sequence diagram): https://sequencediagram.org/index.html#initialData=C4S2BsFMAIHUHsBOBraBlYkCG4QDsBzaABUXmHgGN5wAoWgFQAsRIAzaPeAE0gFoAfF17QATAC4A4pGAIU4eFm6MW7Tj35CN0AMxSZc5AqUrWHYZovQALPtlIji5VdGDmZ9b3GHj3ABQAjAAMAJS0VjpuquYa3g6+fgBsYVbWUR4WcfJOfgAcYe5qFulFsQwgALaQ8ACuwKalvIIu4hjY4IZ+1gXRnpbatm04naIp2q4ChTFeGDSQeJ3W0JRYeNwg3FiYAM5jImmTvZmzUAsOfqLLq+ubOz0ZGs3j4gCClMgn84YN0-37r+9PmcUEA
+When a node is out of work, either because it just joined the cluster or because all the candidates it checked got pruned and did not generate any new candidates to check, it tries to take over some of the work of the other nodes. 
+This process is called \emph{Work Stealing}.
+We use it to ensure that no node is idle while the others are still checking candidates and to balance the workload over the cluster. 
+The workload of a node is defined by the number of candidates waiting to be processed in its queue. 
+In the desired outcome to add to its own queue of the \emph{Work Stealing Protocol}, each node ends up with a similar workload. 
+To achieve this goal the \emph{Master Actors} of the different nodes communicate their workloads with each other.\\
+The \emph{Work Stealing Protocol} is initiated when a node's \emph{Candidate Queue} is empty, even if some of its workers are still processing candidates and might return new ones soon.
+This node (the \emph{Thief node}) sends a message to all other nodes, asking for the current size of their \emph{Candidate Queues}.
+It also sets a timeout after which it processes the answers of the other nodes. 
+During this processing step it calculates the average \emph{Candidate Queue's} length of all the nodes that answered and itself.
+To improve the balancing of workloads over the cluster, the \emph{Thief node} only takes candidates from nodes that have a \emph{Candidate Queue} of above average length and only takes so many candidates that its own \emph{Candidate Queue's} length does not exceed the average. 
+% Explain in more detail / with pseudocode?
+To get the candidates from another node's \emph{Candidate Queue}, the \emph{Thief node} sends a message with the amount of candidates it wants to take to the node it wants to take them from.
+This node, the \emph{Victim node}, then moves the asked for candidates from its \emph{Candidate Queue} into its \emph{Pending Queue} and sends them to the \emph{Thief node}.
+However, since the \emph{Victim node's} queue might have changed since it first sent its length to the \emph{Thief node}, the \emph{Victim node} sends back at most half of the candidates in its queue.
+Once the \emph{Thief node} receives the candidates, it adds them to its own queue and sends a message acknowledging the receipt to the \emph{Victim node}, which then deletes the candidates from its \emph{Pending queue}. 
+To ensure the send candidates arrive and will get processed, the \emph{Victim node} watches the \emph{Thief node}.
+In the case that the \emph{Thief node} failes before it could acknowledge the receipt of the candidates, the \emph{Victim node} moves them back to its own \emph{Candidate queue} from its \emph{Pending queue}.
+ 
+\subsubsection{Downing Protocol} \label{protocol:downing}
+When all \emph{Order Dependencies} have been found and there are no more candidates to check, the system should shut itself down.
+A node starts the \emph{Downing Protocol}, when it has no more candidates in its \emph{Candidate Queue} and \emph{Pending Queue} and an attempt to get more work using \emph{Work Stealing} was unsuccessful. 
+Checking the \emph{Pending Queue} is important because candidates currently being processed could generate new candidates and therefore new work.\\
+To ensure that there are no more candidates to be processed and no more candidates being generated in the whole cluster, the node has to ask every other node, whether they are also out of candidates.
+If another node still holds unprocessed candidates or is still in the process of creating new candidates, these could be redistributed over the cluster using \emph{Work Stealing} so the node can continue to work instead of shutting itselves down.
+The node waits for a response from every other node in the cluster, also being aware of nodes leaving the cluster and subsequently not awaiting their response anymore.\\
+If any of the other nodes respond with a message saying that they are still holding or processing candidates, the node switches from the \emph{Downing} to the \emph{Work Stealing Protocol}.
+If all nodes have either left the cluster or responded that they have no more work, the node shuts itself down.
 
-\subsubsection{Downing Protocol}
-
-\subsubsection{State Replication Protocol}
+\subsubsection{State Replication Protocol} \label{protocol:stateReplication}
+To ensure any of the nodes of the cluster can fail without any work getting lost, every node regularly replicates its state to two other nodes.
+Because of this, three specific nodes would have to fail simultaneously to permanently lose any unprocessed candidates. 
+In this case, everything would need to be restarted to ensure complete results. \\
+Which nodes the state is sent to is decided by their addresses.
+All nodes in a cluster are ordered by their addresses and every node replicates its state to both its neighbours in this ordering.
+The first and last node in this ordering are also each others neighbours.\\
+Every node has a \emph{State Replication Actor} responsible for regularly sending the node's state to its neighbours and processing these neighbour's states when they are sent. 
+It gets the information of who its neighbours are from the \emph{Cluster Listener Actor}. \\
+In regular intervals, the \emph{State Replicator} asks the \emph{Master Actor} for its current state.
+The state is a combination of its \emph{Candidate Queue} and \emph{Pending Queue}.
+On receiving the \emph{Master's} current state, the \emph{State Replicator} sends to both its neighbours with a version number that is continually increased.\\
+When a \emph{State Replicator} receives the state of one of its neighbours, it checks whether the version number in the new message is higher than the version number of the last state it received from that actor.
+If this is the case, it saves the new state and version number.
+If not, is discards the new message, because it already has a more up to date state for that actor. \\
+\paragraph{A node joins the cluster}
+When a new node joins the cluster, the \emph{Cluster Listener} updates its ordering of all the nodes in the cluster. 
+It then sends the \emph{State Replicator} the updated neighbour information.
+If the nodes neighbour has changed, the \emph{State Replicator} removes the state of the node that is no longer its neighbour and sends its own state to its new neighbour.
+\paragraph{A node leaves the cluster}
+When a node leaves the cluster, its two neighbours have to decide which of them will take on the work the leaving node did not finish. 
+They are alerted to their neighbour's leaving by the \emph{Cluster Listener} who also immediately tells them, who their new neighbour is. 
+This new neighbour was the leaving nodes other neighbour.
+To determine which of the two has the most up to date state of the leaving node, they share the version number of the leaving node's state. 
+The node with the higher version number adds the leaving nodes state to its own \emph{Candidate Queue} to ensure all candidates get processed. 
+The node with the lower version number deletes the state of the leaving node.
+The two nodes then share their state with each other. 
