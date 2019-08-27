@@ -4,25 +4,25 @@
 
 \section{Approach}\label{sec:approach}
  
-\subsection{\textsc{ocddiscover}}
+\subsection{\ocddiscover{}}
 %TODO add references
-The \textsc{ocddiscover} algorithm creates the searchspace for finding \emph{order dependencies} over \emph{order compatibilities}.
-This can be done, because they prove that whenever there is an \emph{order dependency}, there is also an \emph{order compatibility} and a \emph{functional dependency}.
-Using \emph{order compatibilities} reduces the search space, because they are symmetrical. \\
+The \ocddiscover{} algorithm creates the searchspace for finding \glspl{od} over \glspl{ocd}.
+This can be done, because they prove that whenever there is an \gls{od}, there is also an \gls{ocd} and a functional dependency.
+Using \glspl{ocd} reduces the search space, because they are symmetrical. \\
 Consonni et al build the search tree, by testing each candidate for being order compatible. 
 If it is not, no children are generated for this candidate.
 If it is order compatible the candidate is checked for being order dependent. 
-If it is we have found a minimal order dependency and no children need to be checked, as they would not be minimal.
+If it is we have found a minimal \gls{od} and no children need to be checked, as they would not be minimal.
 If it is not, children to be checked later are generated. 
 This happens by adding a column that does not yet appear on either side of the candidate once to its left and once to its right side. \\
-Consonni et al proved in their paper, that they would be able to find all minimal \emph{Order dependencies} using this method of generating candidates.
-However, as Szlichta et al showed in their Errata Note, Consonni et al made a mistake in one of their proofs and this method of building the searchspace does not create minimal \emph{Order dependencies} with repeated prefixes.
+Consonni et al proved in their paper, that they would be able to find all minimal \glspl{od} using this method of generating candidates.
+However, as Szlichta et al showed in their Errata Note, Consonni et al made a mistake in one of their proofs and this method of building the searchspace does not create minimal \glspl{od} with repeated prefixes.
 
 \subsection{Our architecture}
 \subsubsection{System architecture}
 The cluster we use has a \emph{Peer-to-peer} architecture.
 Every node has the same structure and works on the same kinds of tasks.
-Every node also hold the complete dataset, because the checking of \emph{Order Dependency candidates} requires access to the contents of all columns.  
+Every node also hold the complete dataset, because the checking of \gls{od} candidates requires access to the contents of all columns.
 The \emph{Peer-to-peer} architecture allows every single node to fail without work getting lost or the algorithm needing to be restarted. \\
 The only circumstance during which this is not the case is when the systems is newly started. 
 At the beginning a single node, which we call \emph{Seed node}, is responsible for loading the data, the initial pruning step and the generation of the first set of candidates. 
@@ -37,43 +37,46 @@ The distribution of candidates from the \emph{Seed node} to all other nodes in t
 \subsubsection{Node Architecture}
 Every node in the cluster shares the same actors.
 These are both helpful for parallelizing the tasks each node work on as well as structuring the communication in between nodes.
-\paragraph{Master} 
-The \emph{Master actor} is responsible for holding the state of a node.
-In contains the \emph{Candidate queue} and \emph{Pending queue} and distributes the candidates to the \emph{Worker actors} to be worked on in parallel. 
-We use a pull-based apporach for this distribution of tasks.
-This means that the \emph{Master} only ever responds to \emph{Workers} asking for candidates and therefore does not have to monitor the state of every single \emph{Worker} of the node.
-The \emph{Master} also deals with getting new candidates using \emph{Work Stealing} (\ref{protocol:workStealing}), when the \emph{Candidate Queue} is empty and initiates the node shutdown when the \emph{Downing Protocol} (\ref{protocol:downing}) reveals that all \emph{Order Dependencies} have been found.
 
-\paragraph{Worker}
-A node can have an arbitrary number of \emph{Worker actos}, though the number of available threads - 1 is usually a good estimation for effective ressource usage.
-The \emph{Workers} check candidates, which they get from the \emph{Master} and generate new ones, which they send back for the \emph{Master} to append to the \emph{Candidate Queue}.
-This checking and generating of candidates is the main task of each node and therefore requires the most ressources.
-All \emph{Order Dependencies} and \emph{Order Compatibilities} the \emph{Worker} finds are send to the \emph{Result Collector} to be recorded into a file. 
-
-\paragraph{Data Holder}
-The \emph{Data Holder actor} is responsible for loading and holding the dataset, for which the \emph{Order Dependencies} are to be found. 
-A reference to this dataset is shared with the \emph{Workers} who need it to check candidates.
-If a path to the dataset is provided to the node on start up, it loads it from the file.
-If not, the \emph{Data Holder} asks one of their neighbours in the cluster to provide them the dataset via streaming.
-Once the dataset is loaded, the \emph{Data Holder} notifies the \emph{Master} that the node is ready to start working on checking candidates. 
-
-\paragraph{Result Collector}
-The \emph{Result Collector actor} gets send all found \emph{Order Dependencies} and \emph{Order Compatabilities} by the \emph{Workers}.
-It collects and counts these results and writes them to a file so they can be recovered even if the node fails unexpectedly. 
-
-\paragraph{Cluster Listener}
-The \emph{Cluster Listener actor}'s task is to determine and share who the neighbors of its node are.
-Whenever a new node joins the cluster all previous send it references to their \emph{Master} and \emph{State Replicator actors}.
-The new \emph{Cluster Listener} sends back the corresponding information for its node. \\
-When the ordering of nodes changes because a node joined or left the cluster, the updated neighbours are send to the \emph{State Replicator}.
-In contrast, the \emph{Data Holder} only receives information about the neighboring nodes, when it specifically asks for them, because it only needs the information in the beginning to know whom to ask for the dataset.
-
-\paragraph{State Replicator}
-The \emph{State Replicator} holds the state of its neighboring nodes and shares the \emph{Master's} state with them. 
-This enables us to recover work from unexpectedly failed nodes and is explained in more detail in the \emph{State Replicaton Protocol} (\ref{protocol:stateReplication})
-
-\paragraph{Reaper} 
-The \emph{Reaper Actor} watches all other actors and cleanly shuts down the system once all of them are terminated.
+\begin{description}
+  \item[Master]
+  The \emph{Master actor} is responsible for holding the state of a node.
+  In contains the \emph{Candidate queue} and \emph{Pending queue} and distributes the candidates to the \emph{Worker actors} to be worked on in parallel. 
+  We use a pull-based approach for this distribution of tasks.
+  This means that the \emph{Master} only ever responds to \emph{Workers} asking for candidates and therefore does not have to monitor the state of every single \emph{Worker} of the node.
+  The \emph{Master} also deals with getting new candidates using \emph{Work Stealing} (\ref{protocol:workStealing}), when the \emph{Candidate Queue} is empty and initiates the node shutdown when the \emph{Downing Protocol} (\ref{protocol:downing}) reveals that all \glspl{od} have been found.
+  
+  \item[Worker]
+  A node can have an arbitrary number of \emph{Worker actos}, though the number of available threads - 1 is usually a good estimation for effective resources usage.
+  The \emph{Workers} check candidates, which they get from the \emph{Master} and generate new ones, which they send back for the \emph{Master} to append to the \emph{Candidate Queue}.
+  This checking and generating of candidates is the main task of each node and therefore requires the most resources.
+  All \glspl{od} and \glspl{ocd} the \emph{Worker} finds are send to the \emph{Result Collector} to be recorded into a file. 
+  
+  \item[Data Holder]
+  The \emph{Data Holder actor} is responsible for loading and holding the dataset, for which the \glspl{od} are to be found. 
+  A reference to this dataset is shared with the \emph{Workers} who need it to check candidates.
+  If a path to the dataset is provided to the node on start up, it loads it from the file.
+  If not, the \emph{Data Holder} asks one of their neighbors in the cluster to provide them the dataset via streaming.
+  Once the dataset is loaded, the \emph{Data Holder} notifies the \emph{Master} that the node is ready to start working on checking candidates. 
+  
+  \item[Result Collector]
+  The \emph{Result Collector actor} gets send all found \glspl{od} and \glspl{ocd} by the \emph{Workers}.
+  It collects and counts these results and writes them to a file so they can be recovered even if the node fails unexpectedly. 
+  
+  \item[Cluster Listener]
+  The \emph{Cluster Listener actor}'s task is to determine and share who the neighbors of its node are.
+  Whenever a new node joins the cluster all previous send it references to their \emph{Master} and \emph{State Replicator actors}.
+  The new \emph{Cluster Listener} sends back the corresponding information for its node. \\
+  When the ordering of nodes changes because a node joined or left the cluster, the updated neighbors are send to the \emph{State Replicator}.
+  In contrast, the \emph{Data Holder} only receives information about the neighboring nodes, when it specifically asks for them, because it only needs the information in the beginning to know whom to ask for the dataset.
+  
+  \item[State Replicator]
+  The \emph{State Replicator} holds the state of its neighboring nodes and shares the \emph{Master's} state with them.
+  This enables us to recover work from unexpectedly failed nodes and is explained in more detail in the \emph{State Replicaton Protocol} (\ref{protocol:stateReplication}).
+  
+  \item[Reaper] 
+  The \emph{Reaper Actor} watches all other actors and cleanly shuts down the system once all of them are terminated.
+\end{description}
 
 \subsection{Communication Protocols}
 % Questions to be answered for each one:
@@ -105,7 +108,7 @@ To ensure the send candidates arrive and will get processed, the \emph{Victim no
 In the case that the \emph{Thief node} failes before it could acknowledge the receipt of the candidates, the \emph{Victim node} moves them back to its own \emph{Candidate queue} from its \emph{Pending queue}.
  
 \subsubsection{Downing Protocol} \label{protocol:downing}
-When all \emph{Order Dependencies} have been found and there are no more candidates to check, the system should shut itself down.
+When all \glspl{od} have been found and there are no more candidates to check, the system should shut itself down.
 A node starts the \emph{Downing Protocol}, when it has no more candidates in its \emph{Candidate Queue} and \emph{Pending Queue} and an attempt to get more work using \emph{Work Stealing} was unsuccessful. 
 Checking the \emph{Pending Queue} is important because candidates currently being processed could generate new candidates and therefore new work.\\
 To ensure that there are no more candidates to be processed and no more candidates being generated in the whole cluster, the node has to ask every other node, whether they are also out of candidates.
