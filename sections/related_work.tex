@@ -15,18 +15,15 @@ The definition of \glspl{od} by \citeauthor{szlichta:fundamentals} was used thro
 The problem of efficient discovery of \glspl{od} in existing datasets using \citeauthor{szlichta:fundamentals}'s definition was first approached by \citeauthor{langer}~\cite{langer}.
 Their algorithm is called \order{} and first computes all potential \gls{od} candidates and then traverses the candidate lattice in a bottom-up manner employing pruning rules.
 \order{} has a factorial worst-case complexity over the number of attributes in the relation.
-Unfortunately, the aggressive pruning rules of \order{} affect the completeness of their results~\cite{szlichta:discovery}.\\
+Unfortunately, the aggressive pruning rules of \order{} affect the completeness of their results~\cite{szlichta:discovery}.
+
 \citeauthor{szlichta:discovery} present another approach to \gls{od} discovery called \fastod{}.
 It is complete and faster than \order{}.
-\fastod{} uses a polynomial mapping of list-based \glspl{od} to a set-based canonical form, which reduces the algorithm's worst-case complexity to $O(2^{\left|n\right|})$, in the number of attributes $n$.\\
+\fastod{} uses a polynomial mapping of list-based \glspl{od} to a set-based canonical form, which reduces the algorithm's worst-case complexity to $O(2^{\left|n\right|})$, in the number of attributes $n$.
+
 Most recently, \citeauthor{consonni}~\cite{consonni} presented a third approach on \gls{od} discovery using the concept of \glspl{ocd}, called \ocddiscover{}.
-It has a factorial runtime but \citeauthor{consonni} showed that it can outperform \fastod{} on some datasets. 
+It has a factorial worst-case runtime, but \citeauthor{consonni} showed that it can outperform \fastod{} on some datasets.
 \ocddiscover{} is capable of running multi-threaded, which makes it easier to adapt the algorithm to a distributed system.
-
-%TODO go into more detail about how the algorithms work?
-
-When introducing the algorithm \ocddiscover{}, \citeauthor{consonni} claimed, that a provided implementation of \fastod{} did not find all \glspl{od}.
-%
-This was the state of published research when we started on this project, which is why we based our own algorithm on \ocddiscover{}. \\
-Since then, \citeauthor{szlichta:errata}~\cite{szlichta:errata} have published an Errata Note demonstrating an error in \citeauthor{consonni}'s proof of minimality and explaining, how \citeauthor{consonni} misinterpreted \fastod{}'s results.
-Since the goal of our seminar was the distribution of an already existing algorithm with a focus on reliability and scalability, however, we decided to continue working on \ocddiscover{}.
+This was the state of published research when we started on our project, which is why we based our own algorithm on \ocddiscover{}.
+Since then, \citeauthor{szlichta:errata}~\cite{szlichta:errata} have published an Errata Note demonstrating an error in \citeauthor{consonni}'s proof of minimality, which renders the results of \ocddiscover{} incomplete.
+We still base our approach on \ocddiscover{}, since the goal of our work is the distribution of an already existing algorithm with a focus on reliability and scalability.
