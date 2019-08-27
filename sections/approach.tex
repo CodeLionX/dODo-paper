@@ -32,7 +32,7 @@ To begin working, every node needs the dataset, the information which columns ca
 All nodes that are not the \emph{Seed node} can get the dataset from another node via streaming. 
 Once it is done with pruning, the \emph{Seed node} sends the pruning results to all other nodes in a broadcast.
 A node that joins later can ask any other for this information.
-The distribution of candidates from the \emph{Seed node} to all other nodes in the cluster is done using \emph{Work Stealing} (\ref{protocol:workStealing}), which is described in more detail later.
+The distribution of candidates from the \emph{Seed node} to all other nodes in the cluster is done using \emph{Work Stealing} (\cref{protocol:workStealing}), which is described in more detail later.
 
 \subsubsection{Node Architecture}
 Every node in the cluster shares the same actors.
@@ -44,7 +44,7 @@ These are both helpful for parallelizing the tasks each node work on as well as 
   In contains the \emph{Candidate queue} and \emph{Pending queue} and distributes the candidates to the \emph{Worker actors} to be worked on in parallel. 
   We use a pull-based approach for this distribution of tasks.
   This means that the \emph{Master} only ever responds to \emph{Workers} asking for candidates and therefore does not have to monitor the state of every single \emph{Worker} of the node.
-  The \emph{Master} also deals with getting new candidates using \emph{Work Stealing} (\ref{protocol:workStealing}), when the \emph{Candidate Queue} is empty and initiates the node shutdown when the \emph{Downing Protocol} (\ref{protocol:downing}) reveals that all \glspl{od} have been found.
+  The \emph{Master} also deals with getting new candidates using \emph{Work Stealing} (\cref{protocol:workStealing}), when the \emph{Candidate Queue} is empty and initiates the node shutdown when the \emph{Downing Protocol} (\cref{protocol:downing}) reveals that all \glspl{od} have been found.
   
   \item[Worker]
   A node can have an arbitrary number of \emph{Worker actos}, though the number of available threads - 1 is usually a good estimation for effective resources usage.
@@ -72,7 +72,7 @@ These are both helpful for parallelizing the tasks each node work on as well as 
   
   \item[State Replicator]
   The \emph{State Replicator} holds the state of its neighboring nodes and shares the \emph{Master's} state with them.
-  This enables us to recover work from unexpectedly failed nodes and is explained in more detail in the \emph{State Replicaton Protocol} (\ref{protocol:stateReplication}).
+  This enables us to recover work from unexpectedly failed nodes and is explained in more detail in the \emph{State Replicaton Protocol} (see \cref{protocol:stateReplication}).
   
   \item[Reaper] 
   The \emph{Reaper Actor} watches all other actors and cleanly shuts down the system once all of them are terminated.
