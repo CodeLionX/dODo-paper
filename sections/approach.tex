@@ -6,28 +6,32 @@
  
 \subsection{\ocddiscover{}}
 %TODO add references
-The \ocddiscover{} algorithm creates the searchspace for finding \glspl{od} over \glspl{ocd}.
+The \ocddiscover{} algorithm creates the search space for finding \glspl{od} over \glspl{ocd}.
 This can be done, because they prove that whenever there is an \gls{od}, there is also an \gls{ocd} and a functional dependency.
-Using \glspl{ocd} reduces the search space, because they are symmetrical. \\
-Consonni et al build the search tree, by testing each candidate for being order compatible. 
+Using \glspl{ocd} reduces the search space, because they are symmetrical.
+
+\Citeauthor{consonni} build the search tree, by testing each candidate for being order compatible. 
 If it is not, no children are generated for this candidate.
 If it is order compatible the candidate is checked for being order dependent. 
 If it is we have found a minimal \gls{od} and no children need to be checked, as they would not be minimal.
 If it is not, children to be checked later are generated. 
-This happens by adding a column that does not yet appear on either side of the candidate once to its left and once to its right side. \\
-Consonni et al proved in their paper, that they would be able to find all minimal \glspl{od} using this method of generating candidates.
-However, as Szlichta et al showed in their Errata Note, Consonni et al made a mistake in one of their proofs and this method of building the searchspace does not create minimal \glspl{od} with repeated prefixes.
+This happens by adding a column that does not yet appear on either side of the candidate once to its left and once to its right side~\cite{consonni}.
+
+\Citeauthor{consonni} proved in their paper, that they would be able to find all minimal \glspl{od} using this method of generating candidates.
+However, as \citeauthor{szlichta:errata} showed in their Errata Note, \citeauthor{consonni} made a mistake in one of their proofs and this method of building the search space does not create minimal \glspl{od} with repeated prefixes~\cite{szlichta:errata}.
 
 \subsection{Our architecture}
 \subsubsection{System architecture}
 The cluster we use has a \emph{Peer-to-peer} architecture.
 Every node has the same structure and works on the same kinds of tasks.
 Every node also hold the complete dataset, because the checking of \gls{od} candidates requires access to the contents of all columns.
-The \emph{Peer-to-peer} architecture allows every single node to fail without work getting lost or the algorithm needing to be restarted. \\
+The \emph{Peer-to-peer} architecture allows every single node to fail without work getting lost or the algorithm needing to be restarted.
+
 The only circumstance during which this is not the case is when the systems is newly started. 
 At the beginning a single node, which we call \emph{Seed node}, is responsible for loading the data, the initial pruning step and the generation of the first set of candidates. 
 If the \emph{Seed node} were to fail during these first steps, the cluster would need to be restarted. 
-As they usually only take a few seconds, though, this seemed to be a reasonable constraint.\\
+As they usually only take a few seconds, though, this seemed to be a reasonable constraint.
+
 To begin working, every node needs the dataset, the information which columns can be pruned and a first set of candidates to check. 
 All nodes that are not the \emph{Seed node} can get the dataset from another node via streaming. 
 Once it is done with pruning, the \emph{Seed node} sends the pruning results to all other nodes in a broadcast.
@@ -105,7 +109,7 @@ This node, the \emph{Victim node}, then moves the asked for candidates from its 
 However, since the \emph{Victim node's} queue might have changed since it first sent its length to the \emph{Thief node}, the \emph{Victim node} sends back at most half of the candidates in its queue.
 Once the \emph{Thief node} receives the candidates, it adds them to its own queue and sends a message acknowledging the receipt to the \emph{Victim node}, which then deletes the candidates from its \emph{Pending queue}. 
 To ensure the send candidates arrive and will get processed, the \emph{Victim node} watches the \emph{Thief node}.
-In the case that the \emph{Thief node} failes before it could acknowledge the receipt of the candidates, the \emph{Victim node} moves them back to its own \emph{Candidate queue} from its \emph{Pending queue}.
+In the case that the \emph{Thief node} fails before it could acknowledge the receipt of the candidates, the \emph{Victim node} moves them back to its own \emph{Candidate queue} from its \emph{Pending queue}.
  
 \subsubsection{Downing Protocol} \label{protocol:downing}
 When all \glspl{od} have been found and there are no more candidates to check, the system should shut itself down.
@@ -122,24 +126,26 @@ To ensure any of the nodes of the cluster can fail without any work getting lost
 Because of this, three specific nodes would have to fail simultaneously to permanently lose any unprocessed candidates. 
 In this case, everything would need to be restarted to ensure complete results. \\
 Which nodes the state is sent to is decided by their addresses.
-All nodes in a cluster are ordered by their addresses and every node replicates its state to both its neighbours in this ordering.
-The first and last node in this ordering are also each others neighbours.\\
-Every node has a \emph{State Replication Actor} responsible for regularly sending the node's state to its neighbours and processing these neighbour's states when they are sent. 
-It gets the information of who its neighbours are from the \emph{Cluster Listener Actor}. \\
+All nodes in a cluster are ordered by their addresses and every node replicates its state to both its neighbors in this ordering.
+The first and last node in this ordering are also each others neighbors.\\
+Every node has a \emph{State Replication Actor} responsible for regularly sending the node's state to its neighbors and processing these neighbor's states when they are sent. 
+It gets the information of who its neighbors are from the \emph{Cluster Listener Actor}. \\
 In regular intervals, the \emph{State Replicator} asks the \emph{Master Actor} for its current state.
 The state is a combination of its \emph{Candidate Queue} and \emph{Pending Queue}.
-On receiving the \emph{Master's} current state, the \emph{State Replicator} sends to both its neighbours with a version number that is continually increased.\\
-When a \emph{State Replicator} receives the state of one of its neighbours, it checks whether the version number in the new message is higher than the version number of the last state it received from that actor.
+On receiving the \emph{Master's} current state, the \emph{State Replicator} sends to both its neighbors with a version number that is continually increased.\\
+When a \emph{State Replicator} receives the state of one of its neighbors, it checks whether the version number in the new message is higher than the version number of the last state it received from that actor.
 If this is the case, it saves the new state and version number.
-If not, is discards the new message, because it already has a more up to date state for that actor. \\
+If not, is discards the new message, because it already has a more up to date state for that actor.
+
 \paragraph{A node joins the cluster}
 When a new node joins the cluster, the \emph{Cluster Listener} updates its ordering of all the nodes in the cluster. 
-It then sends the \emph{State Replicator} the updated neighbour information.
-If the nodes neighbour has changed, the \emph{State Replicator} removes the state of the node that is no longer its neighbour and sends its own state to its new neighbour.
+It then sends the \emph{State Replicator} the updated neighbor information.
+If the nodes neighbor has changed, the \emph{State Replicator} removes the state of the node that is no longer its neighbor and sends its own state to its new neighbor.
+
 \paragraph{A node leaves the cluster}
-When a node leaves the cluster, its two neighbours have to decide which of them will take on the work the leaving node did not finish. 
-They are alerted to their neighbour's leaving by the \emph{Cluster Listener} who also immediately tells them, who their new neighbour is. 
-This new neighbour was the leaving nodes other neighbour.
+When a node leaves the cluster, its two neighbors have to decide which of them will take on the work the leaving node did not finish. 
+They are alerted to their neighbor's leaving by the \emph{Cluster Listener} who also immediately tells them, who their new neighbor is. 
+This new neighbor was the leaving nodes other neighbor.
 To determine which of the two has the most up to date state of the leaving node, they share the version number of the leaving node's state. 
 The node with the higher version number adds the leaving nodes state to its own \emph{Candidate Queue} to ensure all candidates get processed. 
 The node with the lower version number deletes the state of the leaving node.
