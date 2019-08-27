@@ -10,7 +10,7 @@ The \ocddiscover{} algorithm creates the search space for finding \glspl{od} ove
 This can be done, because they prove that whenever there is an \gls{od}, there is also an \gls{ocd} and a functional dependency.
 Using \glspl{ocd} reduces the search space, because they are symmetrical.
 
-\Citeauthor{consonni} build the search tree, by testing each candidate for being order compatible. 
+\Citeauthor{consonni} build the search tree, by testing each candidate for being order compatible.
 If it is not, no children are generated for this candidate.
 If it is order compatible the candidate is checked for being order dependent. 
 If it is we have found a minimal \gls{od} and no children need to be checked, as they would not be minimal.
@@ -113,10 +113,10 @@ In the case that the \emph{Thief node} fails before it could acknowledge the rec
  
 \subsubsection{Downing Protocol} \label{protocol:downing}
 When all \glspl{od} have been found and there are no more candidates to check, the system should shut itself down.
-A node starts the \emph{Downing Protocol}, when it has no more candidates in its \emph{Candidate Queue} and \emph{Pending Queue} and an attempt to get more work using \emph{Work Stealing} was unsuccessful. 
+A node starts the \emph{Downing Protocol}, when it has no more candidates in its \emph{Candidate Queue} and \emph{Pending Queue} and an attempt to get more work using \emph{Work Stealing} was unsuccessful.
 Checking the \emph{Pending Queue} is important because candidates currently being processed could generate new candidates and therefore new work.\\
 To ensure that there are no more candidates to be processed and no more candidates being generated in the whole cluster, the node has to ask every other node, whether they are also out of candidates.
-If another node still holds unprocessed candidates or is still in the process of creating new candidates, these could be redistributed over the cluster using \emph{Work Stealing} so the node can continue to work instead of shutting itselves down.
+If another node still holds unprocessed candidates or is still in the process of creating new candidates, these could be redistributed over the cluster using \emph{Work Stealing} so the node can continue to work instead of shutting itself down.
 The node waits for a response from every other node in the cluster, also being aware of nodes leaving the cluster and subsequently not awaiting their response anymore.\\
 If any of the other nodes respond with a message saying that they are still holding or processing candidates, the node switches from the \emph{Downing} to the \emph{Work Stealing Protocol}.
 If all nodes have either left the cluster or responded that they have no more work, the node shuts itself down.
@@ -128,7 +128,7 @@ In this case, everything would need to be restarted to ensure complete results. 
 Which nodes the state is sent to is decided by their addresses.
 All nodes in a cluster are ordered by their addresses and every node replicates its state to both its neighbors in this ordering.
 The first and last node in this ordering are also each others neighbors.\\
-Every node has a \emph{State Replication Actor} responsible for regularly sending the node's state to its neighbors and processing these neighbor's states when they are sent. 
+Every node has a \emph{State Replication Actor} responsible for regularly sending the node's state to its neighbors and processing these neighbor's states when they are sent.
 It gets the information of who its neighbors are from the \emph{Cluster Listener Actor}. \\
 In regular intervals, the \emph{State Replicator} asks the \emph{Master Actor} for its current state.
 The state is a combination of its \emph{Candidate Queue} and \emph{Pending Queue}.
@@ -143,8 +143,8 @@ It then sends the \emph{State Replicator} the updated neighbor information.
 If the nodes neighbor has changed, the \emph{State Replicator} removes the state of the node that is no longer its neighbor and sends its own state to its new neighbor.
 
 \paragraph{A node leaves the cluster}
-When a node leaves the cluster, its two neighbors have to decide which of them will take on the work the leaving node did not finish. 
-They are alerted to their neighbor's leaving by the \emph{Cluster Listener} who also immediately tells them, who their new neighbor is. 
+When a node leaves the cluster, its two neighbors have to decide which of them will take on the work the leaving node did not finish.
+They are alerted to their neighbor's leaving by the \emph{Cluster Listener} who also immediately tells them, who their new neighbor is.
 This new neighbor was the leaving nodes other neighbor.
 To determine which of the two has the most up to date state of the leaving node, they share the version number of the leaving node's state. 
 The node with the higher version number adds the leaving nodes state to its own \emph{Candidate Queue} to ensure all candidates get processed. 
