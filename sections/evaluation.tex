@@ -3,12 +3,67 @@
 % !TeX spellcheck = en_US
 
 \section{Evaluation}\label{sec:evaluation}
+
+  In this section, we present an initial evaluation of the performance and fault-tolerance of our algorithm.
+  In \cref{sec:evaluation:correctness}, we evaluate the correctness of the results produces by our algorithm when run in different settings and under faults, \cref{sec:evaluation:comparison} then compares the performance with our baseline \ocddiscover{} by \citeauthor{consonni}.
+  \Cref{sec:evaluation:scalability} then explores further the scalability of \dodo{} across multiple nodes.
+
+  To evaluate the performance of the different \gls{od} discovery approaches, we measure the overall runtime of the algorithm needed to compute all \glspl{od} and \glspl{ocd}.
+  The runtime of the algorithm includes startup and shutdown times and the algorithm must terminate to produce a valid result.
+  As a consequence, when running \dodo{} in a distributed setting, this measurement will include node discovery and shutdown synchronization times.
+
+  All experiments were performed on homogeneous nodes with 20 cores and 64~GB of main memory.
+  \dodo{} is implemented in Scala and the nodes run it with Java 1.8 with the Java JVM heap space limited to 40~GB.
+  We adopted the \textit{flight\_1k} dataset available from the Information Systems Group at Hasso Plattner Institute\footnote{\url{https://hpi.de/naumann/projects/repeatability/data-profiling/fds.html}} to reduce the computation time to an order of minutes.
+  This was achieved by removing sparse columns%
+  \footnote{Removed columns: ArrivalDelayGroups, CancellationCode, Cancelled, CarrierDelay, CRSArrTime, DepartureDelayGroups, DepTimeBlk, Dest, DestAirportID, DestAirportSeqID, DestCityMarketID, DestCityName, DestState, DestStateFips, DestStateName, DestWac, DistanceGroup, Div1Airport, Div1AirportID, Div1AirportSeqID, Div1LongestGTime, Div1TailNum, Div1TotalGTime, Div1WheelsOff, Div1WheelsOn, Div2Airport, Div2AirportID, Div2AirportSeqID, Div2LongestGTime, Div2TailNum, Div2TotalGTime, Div2WheelsOff, Div2WheelsOn, Div3Airport, Div3AirportID, Div3AirportSeqID, Div3LongestGTime, Div3TailNum, Div3TotalGTime, Div3WheelsOff, Div3WheelsOn, Div4Airport, Div4AirportID, Div4AirportSeqID, Div4LongestGTime, Div4TailNum, Div4TotalGTime, Div4WheelsOff, Div4WheelsOn, Div5Airport, Div5AirportID, Div5AirportSeqID, Div5LongestGTime, Div5TailNum, Div5TotalGTime, Div5WheelsOff, Div5WheelsOn, DivActualElapsedTime, DivAirportLandings, DivArrDelay, DivDistance, DivReachedDest, FirstDepTime, LateAircraftDelay, LongestAddGTime, NASDelay, SecurityDelay, TaxiIn, TaxiOut, TotalAddGTime, WeatherDelay, WheelsOff, WheelsOn}.
+  We ended up with a dataset consisting of 1000 rows and 36 columns: \textit{flight\_r1k\_c36}.
+
+\subsection{Correctness and fault-tolerance}\label{sec:evaluation:correctness}
+
+  Because we based our approach on \ocddiscover{} by \citeauthor{consonni}, we don't expect our algorithm to output a complete minimal set of \glspl{od}.
+  Our goal is to output the same \glspl{ocd} and \glspl{od} than \ocddiscover{}.
+
+  We find that for all four datasets, which we considered for comparing the results, \dodo{} computes the same \glspl{ocd} and \glspl{od} independent of whether \dodo{} is running on a single node or distributed across multiple nodes.
+  We did not compare the actual results for our medium-size test dataset \textit{flight\_r1k\_c36}, because it contains too many \glspl{od}.
+  But \cref{tab:results} shows, that \dodo{} finds the same number of \glspl{od} in the dataset than \ocddiscover{}.
+  The number of found \glspl{od} in \cref{tab:results} indicates the sum of found \glspl{ocd} and \glspl{od}.
+  \texttt{iw,jn, kfailure(s)} indicates an experiment with \dodo{} using \texttt{i} workers per node, the system consisting of \texttt{j} nodes overall and \texttt{k} nodes of them were killed during the experiment.
+
+  \begin{table}
+    \centering
+    \begin{tabular}{lrrrr}
+      \toprule
+      \textbf{Experiment} & \textbf{CCs} & \textbf{OECs} & \textbf{\glspl{od}} & \textbf{runtime} \\
+      \midrule
+      \texttt{\ocddiscover{}, 8w} & 7 & 5 & 49~514 & 7~m~09~s \\
+      \texttt{8w, 1n, 0failure} & 7 & 5 & 49~514 & 3~m~42~s \\
+      \texttt{8w, 8n, 0failure} & 7 & 5 & 49~514 & 49~s \\
+      \texttt{8w, 8n, 1failure} & 7 & 5 & 50~055 & 54~s \\
+      \texttt{8w, 8n, 2failures} & 7 & 5 & 48~374 & 55~s \\
+      \texttt{8w, 8n, 3failures} & 7 & 5 & 48~352 & 52~s \\
+      \bottomrule
+    \end{tabular}
+    \caption{Result comparison between \ocddiscover{}, \dodo{}, and \dodo{} in the presence of node failures.}
+    \label{tab:results}
+  \end{table}
+
+  If \dodo{} experiences node failures, it redistributes the \gls{od} candidates to the remaining nodes using the state replication protocol (see \cref{protocol:stateReplication}).
+  This leads to duplicate checks and along with that to the same \gls{od} being found multiple times.
+  This is the case in the experiment \texttt{8w, 8n, 1failure}.
+  \dodo{} finds more \glspl{od} in this experiment as there are in the dataset.
+  This is due to the fact that we do not yet perform deduplication of the found \glspl{od}.
+
+  The experiments with two and more failing nodes do not find all \glspl{od} in the dataset.
+  Unfortunately, we performed the experiments manually and the first node failure was introduced before the node was able to replicate its state to the other nodes in the cluster.
+  This caused the system to loose all \gls{od} candidates of this node.
+  But \dodo{} was able to recover from the following node failures, because those nodes were already able to replicate their state.
+
+  In \cref{tab:results}, we already notice that \dodo{} in a single nodes setup with eight workers is nearly 2x as fast as \ocddiscover{} with eight threads.
+  Running \dodo{} on multiple nodes decreases the time even more as one would expect.
+  If there are no failures, \dodo{} outputs the correct results independent of the number of nodes it is deployed on.
   
-  \begin{itemize}
-    \item What to test? (see testing-strategy)
-    \item Testing setup
-    \item Tests and results
-  \end{itemize}
+\subsection{Comparing with \ocddiscover{}}\label{sec:evaluation:comparison}
 
   \begin{figure}[htbp]
     \centering
@@ -52,6 +107,8 @@
     \caption{Single node runtime comparison of our approach and the baseline algorithm \gls{ocddiscover} with the test dataset \textit{flight\_1k\_stripped\_columns.csv}.}
     \label{fig:runtime-vs-ocddiscover}
   \end{figure}
+
+\subsection{Scalability}\label{sec:evaluation:scalability}
 
   \begin{figure}[htbp]
     \centering
