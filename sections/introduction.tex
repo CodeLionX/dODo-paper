@@ -3,29 +3,18 @@
 % !TeX spellcheck = en_US
 
 \section{Introduction}\label{sec:intro}
-\subsection{Order Dependencies}
-\begin{itemize}
-	\item What are \glspl{od}?
-	\item Why are they useful?
-	\begin{itemize}
-		\item Query optimization
-		\item Data quality (find constraints, help understand semantics)
-		\item support index selection
-	\end{itemize}
-\end{itemize}	
+%TODO Some sort of introductory sentence about big data 
+\glspl{od} describe relationships between lists of columns in datasets and are closely related to functional dependencies. 
+An \gls{od} exists when a table being ordered by one list of attributes causes the table to also be ordered by another list of attributes.
+Knowledge of \glspl{od} can help in understanding the semantics behind the data which can be used to ensure and/or improve data quality e.g. by uncovering and applying constraints.
+They can also be used for query optimization, e.g. to eliminate unneccessary sorting steps, and aid in index selection.
 
-\subsection{Order Dependency Discovery}
-What are the challenges? 
-\begin{itemize}
-	\item Defining Minimality (Unhelpful definition of minimality in Naumann paper, incorrect one in Consonni paper)	
-	\item Large searchspace (Long runtime and large memory-needs)
-	\item current agorithms slow on large datasetz 
-	\item Therefore need scalability -> distribution
-\end{itemize}
-
-\subsection{Distribution}
-\begin{itemize}
-	\item What are distributed Systems? Why are they useful?
-	\item What is the actor model? Why use it here?	
-\end{itemize}
+Some of the challenges in discovering \glspl{od} are the large searchspace, because every combination of attributes could order any other combination of attributes. 
+In the process of reducing this search space several defenitions for minimality of \glspl{od} have been proposed. 
+%TODO look up naumann paper and cite sources. Mention Consonni?
+Nevertheless all currently published algorithms for discovering all minimal \glspl{od} on a dataset have an exponential or factorial runtime. 
+Some speed-up can be achieved using parallelization. 
+On one machine, this is limited by the number of threads, however.
+For better scalability we propose distributing an \gls{od} discovery algorithm over several machines.
+To this end we adapted the algorithm \ocddiscover{} using the actor-based Akka framework.
 
