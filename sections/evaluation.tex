@@ -74,42 +74,7 @@
   \begin{figure}
     \centering
 %    \includestandalone{pictures/tikz/runtime-vs-ocddiscover}
-    \begin{tikzpicture}
-    \begin{axis}[
-    scale only axis,
-    xlabel={parallelism (\dodo{}: number of workers, \ocddiscover{}: number of threads)},
-    ylabel=computation time in minutes,
-    legend pos=north east,
-    legend cell align={left},
-    ]
-
-    \addplot coordinates {
-      (1, 41.17)
-      (2, 18.47)
-      (4, 10.59)
-%      (6, 0.00)
-      (8, 7.15)
-%      (10, 0.00)
-%      (12, 0.00)
-%      (14, 0.00)
-      (16, 6.60)
-    };
-    \addplot coordinates {
-      (1, 19.77)
-      (2, 10.21)
-      (4, 5.91)
-%      (6, 4.41)
-      (8, 3.71)
-%      (10, 2.98)
-%      (12, 2.98)
-%      (14, 2.92)
-      (16, 2.83)
-    };
-
-    \legend{\gls{ocddiscover}, {\gls{dodo}}}
-
-    \end{axis}
-    \end{tikzpicture}
+    \input{pictures/tikz/runtime-vs-ocddiscover}
     \caption{Single node runtime comparison of our approach and the baseline algorithm \gls{ocddiscover} with the test dataset \textit{flight\_1k\_stripped\_columns.csv}.}
     \label{fig:runtime-vs-ocddiscover}
   \end{figure}
@@ -133,53 +98,7 @@
     \centering
     \begin{subfigure}[c]{0.6\textwidth}
       \centering
-      \begin{tikzpicture}[baseline=(current bounding box.center)]
-      \begin{axis}[
-        scale only axis,
-        scale=0.75,
-        xlabel=parallelism (number of nodes),
-        ylabel=speedup,
-        legend pos=south east,
-        legend cell align={left},
-      ]
-
-      \addplot coordinates {
-        (1, 1.00)
-        (2, 1.74)
-        (3, 2.31)
-        (4, 2.76)
-        (5, 3.13)
-        (6, 3.43)
-        (7, 3.68)
-        (8, 3.90)
-      };
-
-      \addplot coordinates {
-        (1, 1.00)
-        (2, 1.56)
-        (3, 2.17)
-        (4, 2.71)
-        (5, 2.82)
-        (6, 3.87)
-        (7, 3.94)
-        (8, 4.34)
-      };
-
-      \addplot+[mark=triangle*] coordinates {
-        (1, 1.00)
-        (2, 1.82)
-        (3, 2.50)
-        (4, 3.08)
-        (5, 3.57)
-        (6, 4.00)
-        (7, 4.38)
-        (8, 4.71)
-      };
-
-      \legend{{$85 \%$},\gls{dodo},{$90 \%$}}
-
-      \end{axis}
-      \end{tikzpicture}
+      \input{pictures/tikz/dodo-scaling}
       \caption{Computation time speedup of \dodo{} compared to theoretical $85 \%$ and $90 \%$ speedup.}
       \label{fig:fig:node-scaling}
     \end{subfigure}
