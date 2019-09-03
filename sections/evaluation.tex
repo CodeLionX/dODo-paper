@@ -5,11 +5,11 @@
 \section{Evaluation}\label{sec:evaluation}
 
   In this section, we present an initial evaluation of the performance and fault-tolerance of our algorithm.
-  In \cref{sec:evaluation:correctness}, we evaluate the correctness of the results produces by our algorithm when run in different settings and under faults, \cref{sec:evaluation:comparison} then compares the performance with our baseline \ocddiscover{} by \citeauthor{consonni}.
-  \Cref{sec:evaluation:scalability} then explores further the scalability of \dodo{} across multiple nodes.
+  In \cref{sec:evaluation:correctness}, we evaluate the correctness of the results produced by our algorithm when run in different settings and under faults, \cref{sec:evaluation:comparison} then compares the performance with our baseline \ocddiscover{} by \citeauthor{consonni}.
+  \Cref{sec:evaluation:scalability} explores the scalability of \dodo{} across multiple nodes.
   The code for \ocddiscover{} was provided to us by the authors.
 
-  To evaluate the performance of the different \gls{od} discovery approaches, we measure the overall runtime of the algorithm needed to compute all \glspl{od} and \glspl{ocd}.
+  To evaluate the performance of the different \gls{od} discovery approaches, we measure the overall runtime the algorithm needed to compute all \glspl{od} and \glspl{ocd}.
   The runtime of the algorithm includes startup and shutdown times and the algorithm must terminate to produce a valid result.
   As a consequence, when running \dodo{} in a distributed setting, this measurement will include node discovery and shutdown synchronization times.
 
@@ -23,19 +23,19 @@
 \subsection{Correctness and fault-tolerance}\label{sec:evaluation:correctness}
 
   Because we based our approach on \ocddiscover{} by \citeauthor{consonni}, we don't expect our algorithm to output a complete minimal set of \glspl{od}.
-  Our goal is to output the same \glspl{ocd} and \glspl{od} than \ocddiscover{}.
+  Our goal is to output the same \glspl{ocd} and \glspl{od} as \ocddiscover{}.
 
-  We find that for all four datasets, which we considered for comparing the results, \dodo{} computes the same \glspl{ocd} and \glspl{od} independent of whether \dodo{} is running on a single node or distributed across multiple nodes.
+  We find that \dodo{} computes the same \glspl{ocd} and \glspl{od} as \ocddiscover{}, independent of whether \dodo{} is run on a single node or distributed across multiple nodes.
   We did not compare the actual results for our medium-size test dataset \textit{flight\_r1k\_c36}, because it contains too many \glspl{od}.
   But \cref{tab:results} shows, that \dodo{} finds the same number of \glspl{od} in the dataset as \ocddiscover{}.
-  The number of found \glspl{od} in \cref{tab:results} indicates the sum of found \glspl{ocd} and \glspl{od}.
+  Column four in \cref{tab:results} indicates the sum of found \glspl{ocd} and \glspl{od}.
   \texttt{iw,jn, kfailure(s)} indicates an experiment with \dodo{} using \texttt{i} workers per node, the system consisting of \texttt{j} nodes overall and \texttt{k} nodes of them were killed during the experiment.
 
   \begin{table}
     \centering
     \begin{tabular}{lrrrr}
       \toprule
-      \textbf{Experiment} & \textbf{CCs} & \textbf{OECs} & \textbf{\glspl{od}} & \textbf{runtime} \\
+      \textbf{Experiment} & \textbf{CCs} & \textbf{OECs} & \textbf{\glspl{ocd} + \glspl{od}} & \textbf{runtime} \\
       \midrule
       \texttt{\ocddiscover{}, 8w} & 7 & 5 & 49~514 & 7~m~09~s \\
       \texttt{8w, 1n, 0failure} & 7 & 5 & 49~514 & 3~m~42~s \\
@@ -49,15 +49,14 @@
     \label{tab:results}
   \end{table}
 
-  If \dodo{} experiences node failures, it redistributes the \gls{od} candidates to the remaining nodes using the state replication protocol (see \cref{protocol:stateReplication}).
-  This leads to duplicate checks and along with that to the same \gls{od} being found multiple times.
-  This is the case in the experiment \texttt{8w, 8n, 1failure}.
+  If \dodo{} experiences node failures, it redistributes the \gls{ocd} candidates to the remaining nodes using the state replication protocol (see \cref{protocol:stateReplication}).
+  This leads to duplicate checks and along with that to the same \gls{od} being found multiple times, as is the case in the experiment \texttt{8w, 8n, 1failure}.
   \dodo{} finds more \glspl{od} in this experiment as there are in the dataset.
   This is due to the fact that we do not yet perform deduplication of the found \glspl{od}.
 
   The experiments with two and more failing nodes do not find all \glspl{od} in the dataset.
   Unfortunately, we performed the experiments manually and the first node failure was introduced before the node was able to replicate its state to the other nodes in the cluster.
-  This caused the system to loose all \gls{od} candidates of this node.
+  This caused the system to loose all \gls{ocd} candidates of this node.
   But \dodo{} was able to recover from the following node failures, because those nodes were already able to replicate their state.
 
   In \cref{tab:results}, we already notice that \dodo{} in a single nodes setup with eight workers is nearly 2x as fast as \ocddiscover{} with eight threads.
@@ -75,13 +74,14 @@
     \centering
 %    \includestandalone{pictures/tikz/runtime-vs-ocddiscover}
     \input{pictures/tikz/runtime-vs-ocddiscover}
-    \caption{Single node runtime comparison of our approach and the baseline algorithm \ocddiscover{} with the test dataset \textit{flight\_1k\_stripped\_columns.csv}.}
+    \caption{Single node runtime comparison of our approach and the baseline algorithm \ocddiscover{} with the test dataset \textit{flight\_r1k\_c36}.}
     \label{fig:runtime-vs-ocddiscover}
   \end{figure}
 
   We find that \dodo{} with a single worker already outperforms the single-threaded version of \ocddiscover{} by over a factor of two.
   \ocddiscover{} switches to a completely different implementation when it is run multi-threaded.
-  This version performs slightly better compared to \dodo{}, because \dodo{} can only achieve a performance increase by a factor of around 1.8.
+  This version performs slightly better compared to \dodo{}.
+  Here, \dodo{} can only achieve a performance increase by a factor of around 1.8 compared to \ocddiscover{}.
   But besides that, \dodo{} scales better than \ocddiscover{}.
   \dodo{} achieves a performance increase of a factor of 2.8 when run with 18 workers compared to \ocddiscover{} with 18 threads.
   This shows that our implementation using the actor model with no explicit synchronization barriers is superior to the explicit multi-threading implementation by \citeauthor{consonni}.
@@ -91,7 +91,7 @@
   In \cref{sec:evaluation:comparison}, we already showed that \dodo{} outperforms our baseline \ocddiscover{} in a single node setup.
   In this section, we analyze the scalability of \dodo{} when run on multiple nodes in a cluster setup.
 
-  \Cref{fig:node-scaling} shows the results of our cluster scalability experiments using our test dataset \textit{flight\_1k\_stripped\_columns.csv}, where we measured the runtime of \dodo{} with different cluster sizes.
+  \Cref{fig:node-scaling} shows the results of our cluster scalability experiments using our test dataset \textit{flight\_r1k\_c36}, where we measured the runtime of \dodo{} with different cluster sizes.
   \Cref{fig:fig:node-scaling} plots the speed of running \dodo{} on multiple nodes and \cref{fig:tab:node-scaling} shows the actual runtime of \dodo{}.
 
   \begin{figure}[htbp]
@@ -121,13 +121,13 @@
       \caption{Computation time for finding all \glspl{od} in the dataset of different cluster sizes.}
       \label{fig:tab:node-scaling}
     \end{subtable}
-    \caption{Scaling our algorithm over the number of nodes and keeping the number of workers fixed at eight workers per node using the test dataset \textit{flight\_1k\_stripped\_columns.csv}.}
+    \caption{Scaling our algorithm over the number of nodes and keeping the number of workers fixed at eight workers per node using the test dataset \textit{flight\_r1k\_c36}.}
     \label{fig:node-scaling}
   \end{figure}
 
-  We find that using \dodo{} in a cluster setup greatly reduces overall computation time despite that additional effort is spend on node discovery, state replication and inter-node synchronization.
-  Finding all \glspl{od} in our test dataset takes about three and a half minutes on a single nodes.
+  We find that using \dodo{} in a cluster setup greatly reduces overall computation time despite the additional effort spend on node discovery, state replication and inter-node synchronization.
+  Finding all \glspl{od} in our test dataset takes about three and a half minutes on a single node.
   This time is already reduced to under a minute when using six or more nodes in the \dodo{} cluster.
   As we can see in \cref{fig:fig:node-scaling}, \dodo{} can achieve a speedup between $85 \%$ and $90 \%$.
   The outliers in the diagram can be explained by our downing protocol implementation, which waits for all nodes to come to a mutual decision that all candidates were processed before shutting down nodes.
-  This protocol can delay the shutdown procedure in unfortunate situations.
+  This protocol can delay the shutdown procedure when the timeouts do overlap only slightly or one node still works on the last \glspl{ocd} candidates.
