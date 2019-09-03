@@ -130,4 +130,4 @@
   This time is already reduced to under a minute when using six or more nodes in the \dodo{} cluster.
   As we can see in \cref{fig:fig:node-scaling}, \dodo{} can achieve a speedup between $85 \%$ and $90 \%$.
   The outliers in the diagram can be explained by our downing protocol implementation, which waits for all nodes to come to a mutual decision that all candidates were processed before shutting down nodes.
-  This protocol can delay the shutdown procedure when the timeouts do overlap only slightly or one node still works on the last \glspl{ocd} candidates.
+  This protocol can delay the shutdown procedure when the timeouts do overlap just slightly or one node still works on the last \glspl{ocd} candidates.
