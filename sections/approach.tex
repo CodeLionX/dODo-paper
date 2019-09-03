@@ -2,25 +2,48 @@
 % !TeX encoding = UTF-8
 % !TeX spellcheck = en_US
 
-\section{Approach}\label{sec:approach}
+\section{Distributed discovery of \glspl{od}}\label{sec:approach}
+
+  We now present our approach to \gls{od} discovery, called \dodo{}.
+  First, we explain how \ocddiscover{}~\cite{consonni} traverses the candidate space to find minimal \glspl{ocd} and \glspl{od} in \cref{sec:ocddiscover}.
+  This is the algorithmic foundation of our approach, which we slightly adopt to be able to distribute the discovery across several nodes in a cluster (see \cref{sec:dodo}).
+  \Cref{sec:architecture} then describes \dodo{}'s architecture and \cref{sec:protocols} the communication protocols used to make a \dodo{} cluster fault-tolerant and elastic.
  
-\subsection{\ocddiscover{}}
-%TODO add references
-The \ocddiscover{} algorithm creates the search space for finding \glspl{od} over \glspl{ocd}.
-This can be done, because they prove that whenever there is an \gls{od}, there is also an \gls{ocd} and a functional dependency.
-Using \glspl{ocd} reduces the search space, because they are symmetrical.
+\subsection{The \ocddiscover{} algorithm}\label{sec:ocddiscover}
 
-\Citeauthor{consonni} build the search tree, by testing each candidate for being order compatible.
-If it is not, no children are generated for this candidate.
-If it is order compatible the candidate is checked for being order dependent. 
-If it is we have found a minimal \gls{od} and no children need to be checked, as they would not be minimal.
-If it is not, children to be checked later are generated. 
-This happens by adding a column that does not yet appear on either side of the candidate once to its left and once to its right side~\cite{consonni}.
+  The \ocddiscover{} algorithm creates the search space to find \glspl{od} over \glspl{ocd}~\cite{consonni}.
+  This reduces the number of candidates that the algorithm must check, because \glspl{ocd} are symmetrical.
+  \Citeauthor{consonni} prove that if a \gls{od} holds, than a functional dependency and a \gls{ocd} hold as well.
+  Based on this theorem, they then use a breadth-first search strategy to identify \gls{ocd} relations in the dataset to discovery minimal dependencies before longer ones.
 
-\Citeauthor{consonni} proved in their paper, that they would be able to find all minimal \glspl{od} using this method of generating candidates.
-However, as \citeauthor{szlichta:errata} showed in their Errata Note, \citeauthor{consonni} made a mistake in one of their proofs and this method of building the search space does not create minimal \glspl{od} with repeated prefixes~\cite{szlichta:errata}.
+  The \ocddiscover{} algorithm consists of two phases.
+  In the first phase, \ocddiscover{} performs an initial pruning step, that removes constant columns and reduces order equivalent columns of the original column set.
+  The constant columns and order equivalent columns are part of the output.
+  They would generate a huge amount of \glspl{od} and those \glspl{od} can easily reconstructed from the result later on.
 
-\subsection{Our architecture}
+  In the second phase, the actual \gls{od} discovery takes place.
+  \ocddiscover{} generates \gls{ocd} candidates from the remaining columns in levels, one after the other.
+  For each level the algorithm checks if the \gls{ocd} candidates hold.
+  If it holds, the candidate is further checked for being order dependent, the results are emitted, and child \gls{ocd} candidates are generated.
+  This step includes further pruning rules~\cite{consonni}.
+  If the \gls{ocd} candidate does not hold, no new candidates starting from it are generated.
+  All newly generated candidates are then put into a list for the next level.
+
+  \Citeauthor{consonni} proved in their paper, that they would be able to find all minimal \glspl{od}.
+  However, as \citeauthor{szlichta:errata} showed in their Errata Note, \citeauthor{consonni} made a mistake in one of their proofs and this method of building the search space does not create minimal \glspl{od} with repeated prefixes~\cite{szlichta:errata}.
+
+\subsection{The \dodo{} algorithm}\label{sec:dodo}
+
+  \begin{itemize}
+    \item we brake with the level-wise algorithm
+    \item instead: single queue
+    \item generation works, because each candidate only depends on its parent~\cite{consonni}
+    \item each candidate can be checked independently~\cite{consonni}
+    \item allows us to parallelize and distribute the \gls{od} validation
+    \item \dots
+  \end{itemize}
+
+\subsection{\dodo{} architecture}\label{sec:architecture}
 \subsubsection{System architecture}
 The cluster we use has a \emph{Peer-to-peer} architecture.
 Every node has the same structure and works on the same kinds of tasks.
@@ -82,7 +105,7 @@ These are both helpful for parallelizing the tasks each node work on as well as 
   The \emph{Reaper Actor} watches all other actors and cleanly shuts down the system once all of them are terminated.
 \end{description}
 
-\subsection{Communication Protocols}
+\subsection{Communication Protocols}\label{sec:protocols}
 % Questions to be answered for each one:
 % What is its purpose? 
 % When is the protocol started and what is the desired outcome? 
@@ -90,7 +113,7 @@ These are both helpful for parallelizing the tasks each node work on as well as 
 % What Messages are being used?
 % What cases need to be covered? (Early outs etc)
 
-\subsubsection{Work Stealing Protocol} \label{protocol:workStealing}
+\subsubsection{Work Stealing Protocol}\label{protocol:workStealing}
 % Possible picture (sequence diagram): https://sequencediagram.org/index.html#initialData=C4S2BsFMAIHUHsBOBraBlYkCG4QDsBzaABUXmHgGN5wAoWgFQAsRIAzaPeAE0gFoAfF17QATAC4A4pGAIU4eFm6MW7Tj35CN0AMxSZc5AqUrWHYZovQALPtlIji5VdGDmZ9b3GHj3ABQAjAAMAJS0VjpuquYa3g6+fgBsYVbWUR4WcfJOfgAcYe5qFulFsQwgALaQ8ACuwKalvIIu4hjY4IZ+1gXRnpbatm04naIp2q4ChTFeGDSQeJ3W0JRYeNwg3FiYAM5jImmTvZmzUAsOfqLLq+ubOz0ZGs3j4gCClMgn84YN0-37r+9PmcUEA
 When a node is out of work, either because it just joined the cluster or because all the candidates it checked got pruned and did not generate any new candidates to check, it tries to take over some of the work of the other nodes. 
 This process is called \emph{Work Stealing}.
@@ -111,7 +134,7 @@ Once the \emph{Thief node} receives the candidates, it adds them to its own queu
 To ensure the send candidates arrive and will get processed, the \emph{Victim node} watches the \emph{Thief node}.
 In the case that the \emph{Thief node} fails before it could acknowledge the receipt of the candidates, the \emph{Victim node} moves them back to its own \emph{Candidate queue} from its \emph{Pending queue}.
  
-\subsubsection{Downing Protocol} \label{protocol:downing}
+\subsubsection{Downing Protocol}\label{protocol:downing}
 When all \glspl{od} have been found and there are no more candidates to check, the system should shut itself down.
 A node starts the \emph{Downing Protocol}, when it has no more candidates in its \emph{Candidate Queue} and \emph{Pending Queue} and an attempt to get more work using \emph{Work Stealing} was unsuccessful.
 Checking the \emph{Pending Queue} is important because candidates currently being processed could generate new candidates and therefore new work.\\
@@ -121,7 +144,7 @@ The node waits for a response from every other node in the cluster, also being a
 If any of the other nodes respond with a message saying that they are still holding or processing candidates, the node switches from the \emph{Downing} to the \emph{Work Stealing Protocol}.
 If all nodes have either left the cluster or responded that they have no more work, the node shuts itself down.
 
-\subsubsection{State Replication Protocol} \label{protocol:stateReplication}
+\subsubsection{State Replication Protocol}\label{protocol:stateReplication}
 To ensure any of the nodes of the cluster can fail without any work getting lost, every node regularly replicates its state to two other nodes.
 Because of this, three specific nodes would have to fail simultaneously to permanently lose any unprocessed candidates. 
 In this case, everything would need to be restarted to ensure complete results. \\
