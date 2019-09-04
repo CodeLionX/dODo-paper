@@ -28,23 +28,6 @@
   calc,
   backgrounds
 }
-\usepackage{pgf-umlsd} % UML sequence diagrams
-\usepackage[simplified,school]{pgf-umlcd} % UML class diagrams
-% UML class diagram overrides
-\renewcommand{\umldrawcolor}{black}
-\renewcommand{\umlfillcolor}{white}
-\tikzstyle{package}=[font=\bf]
-% UML class diagram dactor env
-\newenvironment{dactor}[1]{
-  \def\umlcdDactorName{#1}
-  \def\umlcdPackageFit{}
-}{
-  \begin{pgfonlayer}{background}
-    \node[umlcd style, draw, inner sep=0.5cm, fit=\umlcdPackageFit] (\umlcdDactorName) {};
-    \node[umlcd style, draw, outer ysep=-0.5, anchor=south west] (\umlcdDactorName caption) at
-    (\umlcdDactorName.north west) {\bf\umlcdDactorName : Dactor};
-  \end{pgfonlayer}
-}
 % pgfplots
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.15} % set pgfplots compatibility to version 1.16
@@ -136,7 +119,7 @@
 \newcommand{\order}{\textsc{order}}
 \newcommand{\fastod}{\textsc{fastod}}
 \newcommand{\ocddiscover}{\textsc{OCDDiscover}}
-\newcommand{\dodo}{\textsc{dODo}}
+\newcommand{\dodo}{\textsc{DODO}} % Distributed Order dependency Discovery Optimization
 %% End: Macros
 
 

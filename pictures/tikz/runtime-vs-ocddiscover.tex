@@ -1,0 +1,41 @@
+% !TeX root = ../../paper.tex
+% !TeX encoding = UTF-8
+% !TeX spellcheck = en_US
+
+\begin{tikzpicture}
+  \begin{axis}[
+    scale only axis,
+    xlabel={parallelism (\dodo{}: number of workers, \ocddiscover{}: number of threads)},
+    ylabel=computation time in minutes,
+    legend pos=north east,
+    legend cell align={left},
+  ]
+
+    \addplot coordinates {
+      (1, 41.17)
+      (2, 18.47)
+      (4, 10.59)
+      %      (6, 0.00)
+      (8, 7.15)
+      %      (10, 0.00)
+      %      (12, 0.00)
+      %      (14, 0.00)
+      (16, 6.60)
+    };
+
+    \addplot coordinates {
+      (1, 19.77)
+      (2, 10.21)
+      (4, 5.91)
+      %      (6, 4.41)
+      (8, 3.71)
+      %      (10, 2.98)
+      %      (12, 2.98)
+      %      (14, 2.92)
+      (16, 2.83)
+    };
+
+    \legend{\ocddiscover{}, \dodo{}}
+
+  \end{axis}
+\end{tikzpicture}
