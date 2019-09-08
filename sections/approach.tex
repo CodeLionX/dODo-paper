@@ -14,17 +14,17 @@
   The \ocddiscover{} algorithm creates the search space to find \glspl{od} over \glspl{ocd}~\cite{consonni}.
   This reduces the number of candidates that the algorithm must check, because \glspl{ocd} are symmetrical.
   \Citeauthor{consonni} prove that if a \gls{od} holds, than a functional dependency and a \gls{ocd} hold as well.
-  Based on this theorem, they then use a breadth-first search strategy to identify \gls{ocd} relations in the dataset to discovery minimal dependencies before longer ones.
+  Based on this theorem, they then use a breadth-first search strategy to identify \gls{ocd} relations in the dataset to discover minimal dependencies before longer ones.
 
   The \ocddiscover{} algorithm consists of two phases.
-  In the first phase, \ocddiscover{} performs an initial pruning step, that removes constant columns and reduces order equivalent columns of the original column set.
+  In the first phase, \ocddiscover{} performs an initial pruning step that removes constant columns and reduces order equivalent columns of the original column set.
   The constant columns and order equivalent columns are part of the output.
   They would generate a huge amount of \glspl{od} and those \glspl{od} can easily reconstructed from the result later on.
 
   In the second phase, the actual \gls{od} discovery takes place.
   \ocddiscover{} generates \gls{ocd} candidates from the remaining columns in levels, one after the other.
   For each level the algorithm checks if the \gls{ocd} candidates hold.
-  If it holds, the candidate is further checked for being order dependent, the results are emitted, and child \gls{ocd} candidates are generated.
+  If a candidate holds, the candidate is further checked for being order dependent, the results are emitted, and child \gls{ocd} candidates are generated.
   This step includes further pruning rules~\cite{consonni}.
   If the \gls{ocd} candidate does not hold, no new candidates starting from it are generated.
   All newly generated candidates are then put into a list for the next level.
@@ -34,16 +34,24 @@
 
 \subsection{The \dodo{} algorithm}\label{sec:dodo}
 
-  \begin{itemize}
-    \item we brake with the level-wise algorithm
-    \item instead: single queue
-    \item generation works, because each candidate only depends on its parent~\cite{consonni}
-    \item each candidate can be checked independently~\cite{consonni}
-    \item allows us to parallelize and distribute the \gls{od} validation
-    \item \dots
-  \end{itemize}
+  We use \citeauthor{consonni}'s work as the basis of our discovery algorithm.
+  Conceptually, \dodo{} works the same as \ocddiscover{}.
+  This means that we also make a breadth-first search in a \gls{ocd} candidate tree and our algorithm also consists of an initial pruning step followed by the actual search step.
+  However, our implementation of the algorithm differs.
 
-\subsection{\dodo{} architecture}\label{sec:architecture}
+  Instead of generating our candidates level-wise, we use a task-based approach with a single task queue.
+  We initiate the task queue with the initial \gls{ocd} candidates comparable to the first level generation by \citeauthor{consonni}.
+  Each task's input is the \gls{ocd} candidate.
+  Its outputs are the results from checking the candidate and a set of new tasks that can be empty.
+  The results are emitted as output and the new tasks (child candidates) are added to the task queue.
+  This is possible, because \gls{ocd} candidate checking and the generation of new candidates is independent from the other candidates~\cite{consonni}.
+  This setup allows us to parallelize the processing, because the tasks in the task queue can be processed independently and concurrently.
+  To distribute our algorithm, we just have to spread the tasks, ideally evenly, across our cluster.
+
+\subsection{Implementation of the \dodo{} algorithm}\label{sec:architecture}
+
+  
+
 \subsubsection{System architecture}
 The cluster we use has a \emph{Peer-to-peer} architecture.
 Every node has the same structure and works on the same kinds of tasks.
