@@ -4,20 +4,38 @@
 
 \section{Conclusion}\label{sec:conclusion}
 
-\begin{itemize}
-\item Summary
-\item real conclusion
-\item future work
-\begin{itemize}
-\item what's not implemented yet (merging of results, deduplication, fixing algorithm)
-\item optimize (sort and compare on multiple columns (consider data types or merge values to one or define ordering over indices?))
-\item interesting questions: how to proove we have founbd all edgecases / formalize protocols
-\item Test memory boundaries, possibly optmize memory consumption (delta protocol?), look at garbage collector overhead
-\item Find and fix work stealing edge cases 
-\item evaluate timeouts
-\item The actor model provides a dynamic aspect. 
-This can be used to run multiple approaches in a single system and to exchange information between them. 
-The goal of this would be to benefit from the advantages of the different approaches and at the same time decreasing their disadvantages.
-Our approach does not make use of this aspect of the actor system so far.
-\end{itemize}
-\end{itemize}
+  In this work, we presented \dodo{}, a scalable, fault-tolerant, distributed \gls{od} discovery algorithm implemented on top of the Akka toolkit.
+  \dodo{} can be deployed on a single node or in a cluster.
+  It makes use of work stealing to distribute load and to deal with dynamic cluster sizes.
+  A state replication protocol ensures fault-tolerance in the case of message loss and node failures.
+  We based \dodo{}'s \gls{od} discovery approach on \ocddiscover{} introduced by \citeauthor{consonni}~\cite{consonni}.
+  Our approach outperforms \ocddiscover{} by about a factor of two on a single node setup and we can even scale out across several nodes.
+  Our experiments show that distributing an \gls{od} discovery algorithm across nodes greatly reduces computation time of the algorithm.
+  \dodo{} in cluster mode with eight nodes achieves a four times speedup compared to a single node \dodo{} setup.
+  This proves that employing distributed algorithms to aid \gls{od} discovery reduces computation times and increases their robustness.
+  This opens the way for using \gls{od} discovery to find hidden dependencies in structured big data.
+
+  \dodo{} currently uses \citeauthor{consonni}'s definition of minimality.
+  As \citeauthor{szlichta:errata}~\cite{szlichta:errata} have pointed out, this does not find all minimal \glspl{ocd} in the dataset.
+  A valuable next step would therefore be the change of the discovery algorithm to correctly prune the search space according to \cite{szlichta:errata}.
+  Additionally, we currently do not remove duplicates from the results and we do not automatically merge the result sets from different nodes.
+  Duplicates are produced when \dodo{} recovers from node failures and some \gls{ocd} candidates must be re-checked on another node to prevent data loss.
+
+  \dodo{} is implemented using the actor programming model.
+  It provides a dynamic computation aspect.
+  This can be used to run different \gls{od} discovery approaches in a single system at the same time and to exchange information between them.
+  This could decrease the computation time further, because the exchanged information can be used to prune the search spaces for the different approaches dynamically.
+  Future work has to evaluate if the benefits of this approach outweigh their disadvantages, such as increased communication overhead and running two approaches simultaneously.
+  Our approach does not make use of this aspect of the actor model so far.
+
+  Finally, we did not yet perform micro-benchmarks with \dodo{}.
+  It would be interesting to further evaluate
+  (i) the memory boundaries of \dodo{},
+  (ii) the different settings for batch-sizes and timeout durations, and
+  (iii) the impact of the work stealing and state replication protocols on the performance of our algorithm.
+
+% did not fit in:
+%\begin{itemize}
+%  \item interesting questions: how to proove we have founbd all edgecases / formalize protocols
+%  \item Find and fix work stealing edge cases
+%\end{itemize}
