@@ -46,11 +46,21 @@
   The results are emitted as output and the new tasks (child candidates) are added to the task queue.
   This is possible, because \gls{ocd} candidate checking and the generation of new candidates is independent from the other candidates~\cite{consonni}.
   This setup allows us to parallelize the processing, because the tasks in the task queue can be processed independently and concurrently.
-  To distribute our algorithm, we just have to spread the tasks, ideally evenly, across our cluster.
+  To distribute our algorithm, we just spread the tasks, ideally evenly, across our cluster.
 
 \subsection{Implementation of the \dodo{} algorithm}\label{sec:architecture}
 
-  
+  We implement the \dodo{} algorithm using Akka~\cite{akka}, Akka Clustering~\cite{akka:clustering} and the Scala programming language~\cite{scala}.
+  Akka is a toolkit for building distributed message-driven applications using the actor programming model that was first introduced in Orleans~\cite{bernstein:orleans}.
+  It provides tools for concurrency, distribution, and elasticity.
+
+  The \dodo{} algorithm is designed as a peer-to-peer cluster.
+  All nodes in the cluster are equal and employ the same internal architecture.
+  The nodes are arranged on a ring, so that every node has two neighbors.
+  Based on this cluster layout, we define communication protocols (see \cref{sec:protocols}) to balance the workload, to recover from node failures, and to allow dynamic cluster sizes.
+  Each node runs its own actor system with the complete set of \dodo{} actors (\cref{sec:node-architecture} describes them in more detail) and works on the checking of \glspl{ocd} and the generation of new \gls{ocd} candidates.
+  \Cref{fig:dodo-architecture} shows the cluster architecture and the internal architecture of the nodes' actor systems exemplarily by node two.
+
   \begin{figure}
     \centering
     \input{pictures/tikz/dodo-architecture}
@@ -58,24 +68,33 @@
     \label{fig:dodo-architecture}
   \end{figure}
 
-\subsubsection{System architecture}
-The cluster we use has a \emph{Peer-to-peer} architecture.
-Every node has the same structure and works on the same kinds of tasks.
-Every node also hold the complete dataset, because the checking of \gls{od} candidates requires access to the contents of all columns.
-The \emph{Peer-to-peer} architecture allows every single node to fail without work getting lost or the algorithm needing to be restarted.
+  The execution of the \dodo{} algorithm in the cluster is initiated by a seed node.
+  The seed node plays a special role in our cluster and it is the only exception to the peer-to-peer approach.
+  It is started before all other nodes and has the following unique tasks:
 
-The only circumstance during which this is not the case is when the systems is newly started. 
-At the beginning a single node, which we call \emph{Seed node}, is responsible for loading the data, the initial pruning step and the generation of the first set of candidates. 
-If the \emph{Seed node} were to fail during these first steps, the cluster would need to be restarted. 
-As they usually only take a few seconds, though, this seemed to be a reasonable constraint.
+  \begin{itemize}
+    \item The seed node is the initial contact point for all nodes that want to join the cluster.
+    \item It always loads the dataset from disk into memory.
+    \item It performs the initial pruning and generates the first \gls{ocd} candidates.
+  \end{itemize}
 
-To begin working, every node needs the dataset, the information which columns can be pruned and a first set of candidates to check. 
-All nodes that are not the \emph{Seed node} can get the dataset from another node via streaming. 
-Once it is done with pruning, the \emph{Seed node} sends the pruning results to all other nodes in a broadcast.
-A node that joins later can ask any other for this information.
-The distribution of candidates from the \emph{Seed node} to all other nodes in the cluster is done using \emph{Work Stealing} (\cref{protocol:workStealing}), which is described in more detail later.
+  The seed node is the first node in the cluster and may be the only one in the cluster for some time.
+  If the seed node fails during this first phase, the whole cluster shuts down and must be restarted.
+  We do not implement resilience for this first phase.
+  This seemed to be a reasonable constraint, though, because the first phase only takes a few seconds.
 
-\subsubsection{Node Architecture}
+  After the seed node started up, it immediately starts with the discovery phase.
+  All other nodes that already joined the cluster wait for the seed node to finish data loading and initial pruning.
+  The discovery phase can not start until the seed node removed all constant columns and reduced the order equivalent columns.
+  Therefore, the seed node broadcasts the reduced column set to all joined nodes once it finished pruning them.
+  Our algorithm requires all nodes to have access to the whole dataset, because we do not partition the candidates and every node can check every candidate.
+  This means that nodes load the dataset from their neighbors using data streaming, where the seed node is the data origin.
+
+  Every node needs the dataset, the reduced column set, and some \gls{ocd} candidates to start the discovery.
+  Later joining nodes, therefore, ask their direct neighbors in the ring for the dataset and the reduced column set.
+  The distribution of \gls{ocd} candidates is implemented using a work stealing protocol, which we describe in \cref{protocol:workStealing}.
+
+\subsubsection{Node Architecture}\label{sec:node-architecture}
 Every node in the cluster shares the same actors.
 These are both helpful for parallelizing the tasks each node work on as well as structuring the communication in between nodes.
 
