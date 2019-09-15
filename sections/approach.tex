@@ -95,6 +95,7 @@
   The distribution of \gls{ocd} candidates is implemented using a work stealing protocol, which we describe in \cref{protocol:workStealing}.
 
 \subsection{\dodo{} node architecture}\label{sec:node-architecture}
+
   Every node in the cluster has the same internal architecture, because the nodes form a peer-to-peer cluster, where all nodes are equal.
   Every node can become the seed node that performs the initialization steps at the beginning of the algorithm.
   The node architecture is shown in \cref{fig:dodo-architecture} on the right as an example for node 2.
@@ -164,6 +165,7 @@
   In \cref{protocol:stateReplication}, we present our state replication protocol that synchronizes the nodes' states to their cluster neighbors to prevent loss of candidates.
 
 \subsubsection{Work stealing protocol}\label{protocol:workStealing}
+
   % Possible picture (sequence diagram): https://sequencediagram.org/index.html#initialData=C4S2BsFMAIHUHsBOBraBlYkCG4QDsBzaABUXmHgGN5wAoWgFQAsRIAzaPeAE0gFoAfF17QATAC4A4pGAIU4eFm6MW7Tj35CN0AMxSZc5AqUrWHYZovQALPtlIji5VdGDmZ9b3GHj3ABQAjAAMAJS0VjpuquYa3g6+fgBsYVbWUR4WcfJOfgAcYe5qFulFsQwgALaQ8ACuwKalvIIu4hjY4IZ+1gXRnpbatm04naIp2q4ChTFeGDSQeJ3W0JRYeNwg3FiYAM5jImmTvZmzUAsOfqLLq+ubOz0ZGs3j4gCClMgn84YN0-37r+9PmcUEA
   When a node is out of work, either because it just joined the cluster or because all the candidates it checked got pruned and no new candidates were generated, it tries to take over some of the work of the other nodes in the cluster.
   We call this process work stealing.
@@ -195,6 +197,7 @@
   In the case that the thief fails before it could acknowledge the receipt of the candidates, the victim will recover the to-be-stolen candidates and add them back to its own candidate queue.
 
 \subsubsection{Downing protocol}\label{protocol:downing}
+
   When all \glspl{od} have been found and there are no more candidates to check, the system should shut itself down cleanly.
   \dodo{} is distributed across different nodes that act relatively autonomous.
   This means they have to communicate with each other to figure out if all of the nodes are out of work.
@@ -213,6 +216,7 @@
   This process is the same for all other nodes in the cluster and eventually all nodes will shut down.
 
 \subsubsection{State replication protocol}\label{protocol:stateReplication}
+
   The state replication protocol ensures that a \dodo{} cluster can tolerate complete node failures without losing work.
   Every node regularly replicates its state to its left and right neighbor in the cluster ring.
   Only if three neighboring nodes fail simultaneously would \dodo{} lose the unprocessed candidates of one node.
