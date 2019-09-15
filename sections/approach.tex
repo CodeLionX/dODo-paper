@@ -251,8 +251,7 @@
   The two nodes then share their updated state with each other to reach a three-fold state replication for all nodes again.
 
   There might have elapsed some time between the last state replication and the node failure.
-  This means that the failing node processed candidates that produced results and new candidates that are not reflected in the state replicas.
+  This means that in the meantime the failing node generated candidates that are not reflected in the state replicas.
   The new candidates are no problem, because they can be recomputed from the existing candidates in the state replica.
-  The candidate generation and pruning is deterministic.
   The results were made persistent on the local disk of the failed node and can be recovered.
   However, as some candidates are processed by the failed node and the node that recovered the state, \dodo{} will produce duplicate results in the presence of node failures.
