@@ -95,48 +95,63 @@
   The distribution of \gls{ocd} candidates is implemented using a work stealing protocol, which we describe in \cref{protocol:workStealing}.
 
 \subsection{\dodo{} node architecture}\label{sec:node-architecture}
-Every node in the cluster shares the same actors.
-These are both helpful for parallelizing the tasks each node work on as well as structuring the communication in between nodes.
+  Every node in the cluster has the same internal architecture, because the nodes form a peer-to-peer cluster, where all nodes are equal.
+  Every node can become the seed node that performs the initialization steps at the beginning of the algorithm.
+  The node architecture is shown in \cref{fig:dodo-architecture} on the right as an example for node 2.
+  Each node employs its own actor system running actors of seven different actor types.
 
-\begin{description}
+  \begin{description}
   \item[Master]
-  The \emph{Master actor} is responsible for holding the state of a node.
-  In contains the \emph{Candidate queue} and \emph{Pending queue} and distributes the candidates to the \emph{Worker actors} to be worked on in parallel. 
-  We use a pull-based approach for this distribution of tasks.
-  This means that the \emph{Master} only ever responds to \emph{Workers} asking for candidates and therefore does not have to monitor the state of every single \emph{Worker} of the node.
-  The \emph{Master} also deals with getting new candidates using \emph{Work Stealing} (\cref{protocol:workStealing}), when the \emph{Candidate Queue} is empty and initiates the node shutdown when the \emph{Downing Protocol} (\cref{protocol:downing}) reveals that all \glspl{od} have been found.
-  
+    For each node we use a master-worker pattern to utilize the multi-processing and multi-threading capabilities of the node.
+    The Master actor is the node-local coordinator responsible for holding the processing state and communicating with the other nodes.
+    It uses a data holder actor and a state replicator actor to outsource some of the management logic.
+    Both those actor types are explained later on.
+    The Master actor's state consists of a \gls{ocd} candidate queue and a pending work queue.
+    We use a pull-based approach for the distribution of tasks to Worker actors on a node.
+    An idle Worker asks the Master for the next work packet (a batch of \gls{ocd} candidates) and the Master sends the packet to the Worker actor and moves the candidates to the pending work queue.
+    After receiving the results from the Worker the Master removes the candidates from the pending work queue.
+    This means that the Master does not have to monitor the state of every single Worker.
+    The Master also implements the work stealing protocol (see \cref{protocol:workStealing}) to balance the work across the nodes in the cluster and it initiates the node shutdown when their is no more work left and all \glspl{od} have been found (see \cref{protocol:downing}).
+
   \item[Worker]
-  A node can have an arbitrary number of \emph{Worker actos}, though the number of available threads - 1 is usually a good estimation for effective resources usage.
-  The \emph{Workers} check candidates, which they get from the \emph{Master} and generate new ones, which they send back for the \emph{Master} to append to the \emph{Candidate Queue}.
-  This checking and generating of candidates is the main task of each node and therefore requires the most resources.
-  All \glspl{od} and \glspl{ocd} the \emph{Worker} finds are send to the \emph{Result Collector} to be recorded into a file. 
-  
-  \item[Data Holder]
-  The \emph{Data Holder actor} is responsible for loading and holding the dataset, for which the \glspl{od} are to be found. 
-  A reference to this dataset is shared with the \emph{Workers} who need it to check candidates.
-  If a path to the dataset is provided to the node on start up, it loads it from the file.
-  If not, the \emph{Data Holder} asks one of their neighbors in the cluster to provide them the dataset via streaming.
-  Once the dataset is loaded, the \emph{Data Holder} notifies the \emph{Master} that the node is ready to start working on checking candidates. 
-  
+    A node can have an arbitrary number of Worker actors.
+    We propose to use $n - 1$ Workers, where $n$ is the number of available threads on the node.
+    This ensures that one thread is still available even if the Workers are blocking the threads, which should not occur.
+    The Workers perform the actual work of our algorithm.
+    They check \gls{ocd} and \gls{od} candidates and derive new ones from the found \glspl{ocd}.
+    The new candidates are sent back to the Master.
+    This work consumes most of the processing resources and is therefore spread across multiple Worker actors on each node.
+    The Workers send all found \glspl{ocd} and \glspl{od} to the local Result Collector actor, which records them in a persistent file.
+
   \item[Result Collector]
-  The \emph{Result Collector actor} gets send all found \glspl{od} and \glspl{ocd} by the \emph{Workers}.
-  It collects and counts these results and writes them to a file so they can be recovered even if the node fails unexpectedly. 
-  
-  \item[Cluster Listener]
-  The \emph{Cluster Listener actor}'s task is to determine and share who the neighbors of its node are.
-  Whenever a new node joins the cluster all previous send it references to their \emph{Master} and \emph{State Replicator actors}.
-  The new \emph{Cluster Listener} sends back the corresponding information for its node. \\
-  When the ordering of nodes changes because a node joined or left the cluster, the updated neighbors are send to the \emph{State Replicator}.
-  In contrast, the \emph{Data Holder} only receives information about the neighboring nodes, when it specifically asks for them, because it only needs the information in the beginning to know whom to ask for the dataset.
-  
+    The Result Collector actor receives the \glspl{od} and \glspl{ocd} from the local Workers.
+    It collects and counts these results and writes them to a file, so they can be recovered even if the node fails unexpectedly.
+
+  \item[Data Holder]
+    The Data Holder actor is responsible for loading the dataset and for storing the dataset in heap.
+    If we provide a file path to a dataset to the node during startup, the Data Holder will load and parse the dataset from disk.
+    It also performs type inference to ensure the correct ordering relation for dates, numbers and text.
+    If no file path is available, the Data Holder asks the node's neighbors on the ring (see Cluster Listener actor) to stream the dataset to it.
+    Once the dataset is loaded in memory, the Data Holder makes the reference available to the Master and the Worker actors.
+    From this point on it is able to stream the dataset to other nodes as well.
+
   \item[State Replicator]
-  The \emph{State Replicator} holds the state of its neighboring nodes and shares the \emph{Master's} state with them.
-  This enables us to recover work from unexpectedly failed nodes and is explained in more detail in the \emph{State Replicaton Protocol} (see \cref{protocol:stateReplication}).
-  
-  \item[Reaper] 
-  The \emph{Reaper Actor} watches all other actors and cleanly shuts down the system once all of them are terminated.
-\end{description}
+    The State Replicator actor is a utility actor for the Master actor.
+    It holds the state of its two neighboring nodes and shares the state of its own local Master actor with them.
+    This enables us to recover work from unexpectedly failed nodes and is explained in more detail in  \cref{protocol:stateReplication}.
+
+  \item[Cluster Listener]
+    Each node in the \dodo{} cluster has a position on a conceptual node-ring.
+    The position is determined based on the node's network address consisting of hostname and port information.
+    Leaving and joining nodes change the arrangement of the nodes on the ring.
+    The Cluster Listener actor is responsible for creating a representation of the ring structure and for listening on cluster events introducing or removing nodes.
+    It determines the position of the local node on the ring and shares the neighboring node's address information with the other local actors.
+    Whenever the neighbors of the local node change, the updated neighbors are sent to the State Replicator to change the target for state updates.
+    In contrast, the Data Holder only receives information about the neighboring nodes, when it specifically asks for them, because it only needs the information when requesting the dataset from another node.
+
+  \item[Reaper]
+    The Reaper actor watches all other actors and cleanly shuts down the local actor system once all of them are terminated.
+  \end{description}
 
 \subsection{Communication protocols}\label{sec:protocols}
 % Questions to be answered for each one:
