@@ -94,7 +94,7 @@
   Later joining nodes, therefore, ask their direct neighbors in the ring for the dataset and the reduced column set.
   The distribution of \gls{ocd} candidates is implemented using a work stealing protocol, which we describe in \cref{protocol:workStealing}.
 
-\subsubsection{Node Architecture}\label{sec:node-architecture}
+\subsection{\dodo{} node architecture}\label{sec:node-architecture}
 Every node in the cluster shares the same actors.
 These are both helpful for parallelizing the tasks each node work on as well as structuring the communication in between nodes.
 
@@ -138,7 +138,7 @@ These are both helpful for parallelizing the tasks each node work on as well as 
   The \emph{Reaper Actor} watches all other actors and cleanly shuts down the system once all of them are terminated.
 \end{description}
 
-\subsection{Communication Protocols}\label{sec:protocols}
+\subsection{Communication protocols}\label{sec:protocols}
 % Questions to be answered for each one:
 % What is its purpose? 
 % When is the protocol started and what is the desired outcome? 
@@ -146,7 +146,7 @@ These are both helpful for parallelizing the tasks each node work on as well as 
 % What Messages are being used?
 % What cases need to be covered? (Early outs etc)
 
-\subsubsection{Work Stealing Protocol}\label{protocol:workStealing}
+\subsubsection{Work stealing protocol}\label{protocol:workStealing}
 % Possible picture (sequence diagram): https://sequencediagram.org/index.html#initialData=C4S2BsFMAIHUHsBOBraBlYkCG4QDsBzaABUXmHgGN5wAoWgFQAsRIAzaPeAE0gFoAfF17QATAC4A4pGAIU4eFm6MW7Tj35CN0AMxSZc5AqUrWHYZovQALPtlIji5VdGDmZ9b3GHj3ABQAjAAMAJS0VjpuquYa3g6+fgBsYVbWUR4WcfJOfgAcYe5qFulFsQwgALaQ8ACuwKalvIIu4hjY4IZ+1gXRnpbatm04naIp2q4ChTFeGDSQeJ3W0JRYeNwg3FiYAM5jImmTvZmzUAsOfqLLq+ubOz0ZGs3j4gCClMgn84YN0-37r+9PmcUEA
 When a node is out of work, either because it just joined the cluster or because all the candidates it checked got pruned and did not generate any new candidates to check, it tries to take over some of the work of the other nodes. 
 This process is called \emph{Work Stealing}.
@@ -167,7 +167,7 @@ Once the \emph{Thief node} receives the candidates, it adds them to its own queu
 To ensure the send candidates arrive and will get processed, the \emph{Victim node} watches the \emph{Thief node}.
 In the case that the \emph{Thief node} fails before it could acknowledge the receipt of the candidates, the \emph{Victim node} moves them back to its own \emph{Candidate queue} from its \emph{Pending queue}.
  
-\subsubsection{Downing Protocol}\label{protocol:downing}
+\subsubsection{Downing protocol}\label{protocol:downing}
 When all \glspl{od} have been found and there are no more candidates to check, the system should shut itself down.
 A node starts the \emph{Downing Protocol}, when it has no more candidates in its \emph{Candidate Queue} and \emph{Pending Queue} and an attempt to get more work using \emph{Work Stealing} was unsuccessful.
 Checking the \emph{Pending Queue} is important because candidates currently being processed could generate new candidates and therefore new work.\\
@@ -177,7 +177,7 @@ The node waits for a response from every other node in the cluster, also being a
 If any of the other nodes respond with a message saying that they are still holding or processing candidates, the node switches from the \emph{Downing} to the \emph{Work Stealing Protocol}.
 If all nodes have either left the cluster or responded that they have no more work, the node shuts itself down.
 
-\subsubsection{State Replication Protocol}\label{protocol:stateReplication}
+\subsubsection{State replication protocol}\label{protocol:stateReplication}
 To ensure any of the nodes of the cluster can fail without any work getting lost, every node regularly replicates its state to two other nodes.
 Because of this, three specific nodes would have to fail simultaneously to permanently lose any unprocessed candidates. 
 In this case, everything would need to be restarted to ensure complete results. \\
