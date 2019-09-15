@@ -29,7 +29,7 @@
   We did not compare the actual results for our medium-size test dataset \textit{flight\_r1k\_c36}, because it contains too many \glspl{od}.
   But \cref{tab:results} shows, that \dodo{} finds the same number of \glspl{od} in the dataset as \ocddiscover{}.
   Column four in \cref{tab:results} indicates the sum of found \glspl{ocd} and \glspl{od}.
-  \texttt{iw,jn, kfailure(s)} indicates an experiment with \dodo{} using \texttt{i} workers per node, the system consisting of \texttt{j} nodes overall and \texttt{k} nodes of them were killed during the experiment.
+  \texttt{iw,jn, kfailure(s)} indicate an experiment with \dodo{} using \texttt{i} workers per node, the system consisting of \texttt{j} nodes overall and \texttt{k} nodes of them were killed during the experiment.
 
   \begin{table}
     \centering
@@ -51,7 +51,7 @@
 
   If \dodo{} experiences node failures, it redistributes the \gls{ocd} candidates to the remaining nodes using the state replication protocol (see \cref{protocol:stateReplication}).
   This leads to duplicate checks and along with that to the same \gls{od} being found multiple times, as is the case in the experiment \texttt{8w, 8n, 1failure}.
-  \dodo{} finds more \glspl{od} in this experiment as there are in the dataset.
+  \dodo{} finds more \glspl{od} in this experiment than there are in the dataset.
   This is due to the fact that we do not yet perform deduplication of the found \glspl{od}.
 
   The experiments with two and more failing nodes do not find all \glspl{od} in the dataset.
@@ -82,7 +82,7 @@
   \ocddiscover{} switches to a completely different implementation when it is run multi-threaded.
   This version performs slightly better compared to \dodo{}.
   Here, \dodo{} can only achieve a performance increase by a factor of around 1.8 compared to \ocddiscover{}.
-  But besides that, \dodo{} scales better than \ocddiscover{}.
+  Apart from that, \dodo{} scales better than \ocddiscover{}.
   \dodo{} achieves a performance increase of a factor of 2.8 when run with 18 workers compared to \ocddiscover{} with 18 threads.
   This shows that our implementation using the actor model with no explicit synchronization barriers is superior to the explicit multi-threading implementation by \citeauthor{consonni}.
 
