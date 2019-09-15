@@ -160,7 +160,7 @@
   \dodo{} is able to rebalance work across the cluster.
   This allows us to dynamically add more nodes to an already running cluster.
   This is implemented by the work stealing protocol introduced in the next section (\cref{protocol:workStealing}).
-  \Cref{protocol:downing} then describes the downing protocol, which ensures that all nodes only shut down if no work is available in the whole cluster any more.
+  \Cref{protocol:downing} then describes the downing protocol, which ensures that all nodes only shut down if there is no more work available in the whole cluster.
   In \cref{protocol:stateReplication}, we present our state replication protocol that synchronizes the nodes' states to their cluster neighbors to prevent loss of candidates.
 
 \subsubsection{Work stealing protocol}\label{protocol:workStealing}
@@ -174,9 +174,9 @@
   The work stealing protocol consists of three phases: preparation, stealing, and acknowledgment.
   It is initiated when a node's candidate queue is empty, even if some of its workers are still processing candidates and might return new ones soon.
   Starting work stealing this early reduces idle times.
-  The node with the empty candidate queue (the thief node) starts the preparation phase with asking all other nodes for their current workload.
+  The node with the empty candidate queue (the thief node) starts the preparation phase by asking all other nodes for their current workload.
   Because some nodes might be very busy, it only waits for a specific duration to receive the results.
-  Only the nodes for which the thief received answers are considered as potential victims.
+  Only the nodes from which the thief received answers are considered as potential victims.
   The thief node calculates the average workload of the potential victim nodes and itself.
   This is the ideal workload for every node.
   To improve the work distribution in the cluster, the thief only requests candidates from nodes that have a workload above average and only so many candidates that its own workload does not exceed the average.
@@ -189,7 +189,7 @@
   The number of candidates left in the victim's queue might be less than initially computed, because it could have processed a lot of them in the meantime.
   To prevent data loss, the victim is not directly deleting the stolen candidates from its queue, but it is moving them into another queue, awaiting the acknowledgment of the thief.
 
-  In the acknowledgment phase, the thief node receives the candidates from the victims concurrently and adds them to its own pending queue.
+  In the acknowledgment phase, the thief node concurrently receives the candidates from the victims and adds them to its own pending queue.
   It sends the acknowledgments to the victims, so that they can delete the stolen candidates.
   To ensure that the sent candidates arrive at the thief node and will get processed, the victim uses Akka's actor monitoring to get notified if the thief node dies.
   In the case that the thief fails before it could acknowledge the receipt of the candidates, the victim will recover the to-be-stolen candidates and add them back to its own candidate queue.
@@ -197,7 +197,7 @@
 \subsubsection{Downing protocol}\label{protocol:downing}
   When all \glspl{od} have been found and there are no more candidates to check, the system should shut itself down cleanly.
   \dodo{} is distributed across different nodes that act relatively autonomous.
-  This means they have to communicate with each other to figure out if no node has still work left.
+  This means they have to communicate with each other to figure out if all of the nodes are out of work.
   The downing protocol defines the communication required to achieve a complete and clean shutdown of the cluster ensuring that all \gls{ocd} candidates have been processed.
 
   A node starts the downing protocol, when it has no more candidates in its candidate queue, all local Worker actors have finished processing, and an attempt to get more work using work stealing was unsuccessful.
