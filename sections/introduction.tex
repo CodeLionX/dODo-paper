@@ -6,13 +6,13 @@
 
   With the growing interest in data analytics and near real-time data processing, data quality and query optimization are gaining importance again.
   They can address the scale and complexity of current data-intensive applications.
-  Without clean data and highly optimized queries, organizations will not be able to take full advantage of their existing and upcoming opportunities for data-driven application.
+  Without clean data and highly optimized queries, organizations will not be able to take full advantage of their existing and upcoming opportunities for data-driven applications.
   Data profiling attempts to understand and find hidden metadata, such as integrity constrains and relationships, in existing datasets.
   Discovered integrity constraints are used to characterize data quality and to optimize business query execution.
 
   We take a look at \glspl{od}~\cite{ginsburg,szlichta:fundamentals}, which describe order relationships between lists of attributes in a dataset.
   \glspl{od} are closely related to functional dependencies that have been studied extensively in research~\cite{dependencies:review}.
-  In addition to functional dependencies, \glspl{od} capture the order of values in a column as well.
+  Compared to functional dependencies, \glspl{od} capture the order of values in a column as well.
   An \gls{od} is noted with the $\mapsto$ symbol putting two lists of attributes over a relational dataset into relation: $X \mapsto Y$.
   The intuition is that when we order the relation based on the left-hand side list of attributes $X$ and the \gls{od} $X \mapsto Y$ holds, then the relation is also ordered according to $Y$.
   The ordering based on a list of attributes is lexicographical and produces the same result than the \texttt{ORDER BY}-clause in SQL.
@@ -22,18 +22,18 @@
   A large search space means a bad worst-case time complexity for the corresponding discovery algorithm and also increases the potential memory consumption of the approach.
   In the process of finding a fast and scalable discovery algorithm several definitions for a minimal set of \glspl{od} have been proposed.
   \Citeauthor{langer}~\cite{langer} use the original list-based form introduced in~\cite{szlichta:fundamentals}, \citeauthor{szlichta:discovery}~\cite{szlichta:discovery} use a set-based canonical form, and \citeauthor{consonni}~\cite{consonni} use the notion of order compatibility to aid their discovery approach.
-  Nevertheless all currently available algorithms for \gls{od} discovery have at least an exponential runtime complexity.
+  Nevertheless all current algorithms for \gls{od} discovery have at least an exponential runtime complexity.
 
   Besides all the effort, the discovery of a minimal set of \glspl{od} for relative small datasets consisting of only thousand records with up to 100 columns can still take hours to complete.
   The \gls{od} discovery for those small datasets is CPU-bound.
   This means that more computational power can decrease the time needed for the algorithms to complete.
   Vertical scaling is limited by the available hardware and it is expensive.
-  We therefore propose a scalable, fault-tolerant, distributed \gls{od} discovery algorithm, called \dodo{}, that scales horizontally across multiple nodes and allows dynamic cluster sizes.
+  We therefore propose a scalable, fault-tolerant, and distributed \gls{od} discovery algorithm, called \dodo{}, that scales horizontally across multiple nodes and allows dynamic cluster sizes.
   Our algorithm uses the minimality definition by \citeauthor{consonni}~\cite{consonni} and outperforms their discovery algorithm \ocddiscover{} by a factor of two on a single node.
-  Our experiments with running \dodo{} across multiple nodes shows a good scalability and reduces computation times.
+  Our experiments with running \dodo{} across multiple nodes shows a good scalability and a significant reduction of computation times.
   To our knowledge, \dodo{} is the first implementation of a distributed \gls{od} discovery algorithm.
 
-  Our paper is structured as follows:
+  This report is structured as follows:
   In \cref{sec:related_work} we review related work.
   Our novel distributed \gls{od} discovery approach \dodo{} is described in \cref{sec:approach}, followed by our experimental evaluation of \dodo{} in \cref{sec:evaluation}.
-  We conclude our paper with a conclusion and potential future work in \cref{sec:conclusion}.
+  We end our paper with a conclusion and potential future work in \cref{sec:conclusion}.
