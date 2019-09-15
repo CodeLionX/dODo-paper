@@ -105,7 +105,7 @@
 \glsdisablehyper
 
 % define acronyms here:
-\newacronym[longplural={Order dependencies}]{od}{OD}{order dependency}
+\newacronym[longplural={order dependencies}]{od}{OD}{order dependency}
 \newacronym[longplural={order compatibility dependencies}]{ocd}{OCD}{order compatibility dependency}
 
 % define special names here (we do not create a glossary, so no descriptions are required)
@@ -148,11 +148,15 @@ Sebastian Schmidl, Juliane Waack\footnote{Hasso-Plattner-Institut, University of
 \setcounter{footnote}{2}
 
 \begin{abstract}
-  When dealing with large amounts of data, finding hidden relationships in that data can help both with maintaining and improving data quality and optimizing query performance. 
-  \glspl{od} are among these kinds of hidden relationships.
-  A few solutions for the automatic detection of \glspl{od} have been proposed, all with an at minimum exponential complexity and designed to run on a single system. 
-  In this work we introduce an \gls{od} discovery algorithm, called \dodo{}, which distributes the detection of \glspl{od} across several machines, thereby improving both speed and scalability. 
-  We further evaluate \dodo{} in respect to it's performance, scalability and robstness and demonstrate that we can achieve a significant speed-up compared to the \ocddiscover{} algorithm by \citeauthor{consonni}, which \dodo{} is based on.
+  When dealing with large amounts of data, finding hidden relationships in that data can help with maintaining and improving data quality and optimizing query performance. 
+  \Glspl{od} are among these kinds of hidden relationships.
+  A few solutions for the automatic detection of \glspl{od} have been proposed. 
+  All of them are designed to run on a single system and have an at least exponential runtime complexity. 
+  In this work we introduce an \gls{od} discovery algorithm, called \dodo{}, which distributes the detection of \glspl{od} across several machines in a cluster, thereby improving both speed and scalability. 
+  \dodo{} is build to be fault-tolerant and work with a dynamically changing cluster size.
+  We evaluate \dodo{} in respect to its performance, scalability and robstness.
+  We demonstrate that the single node version of \dodo{} is about twice as fast as the \ocddiscover{} algorithm by \citeauthor{consonni}, which \dodo{} is based on and a significant speed-up to the single node version can be achieved by distributing the algorithm across multiple nodes.
+  \dodo{} shows how distribution can be used to increase perfomance for \gls{od} discovery algorithms, which are limited by the CPUs they are run on.
 \end{abstract}
 
 \begin{keywords}
