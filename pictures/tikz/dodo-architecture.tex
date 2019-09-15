@@ -1,0 +1,72 @@
+% !TeX root = ../../paper.tex
+% !TeX encoding = UTF-8
+% !TeX spellcheck = en_US
+
+\providecommand{\vspacing}{.75}
+\providecommand{\hspacing}{.25}
+\providecommand{\nodewidth}{1.8cm}
+\providecommand{\nodeheight}{1cm}
+
+\def\shiftDim{0.15cm}
+\def\clusterspacing{\vspacing+.25}
+  
+\begin{tikzpicture}[
+    actor/.style={
+      rectangle, rounded corners, draw=black, fill=white, thick,
+      minimum height=\nodeheight, minimum width=\nodewidth,
+      text width=\nodewidth, text centered, font=\bfseries
+    },
+    pics/clusterNode/.style args={#1}{code={%
+        \node[circle, thick, inner sep=-4pt] (#1) {\includegraphics[height=\nodeheight]{pictures/png/dodo-picto}};
+    }},
+    connection/.style=       {black, thick},
+    description/.style=      {midway},
+    description right/.style={description, right},
+    description above/.style={description, above=\hspacing/15},
+    background text/.style={font=\small\bfseries}
+  ]
+  
+  % define actor system components and align them
+  \node[actor] (resultCollector) {Result Collector};
+  \node[actor, above=\vspacing of resultCollector] (stateReplicator) {State Replicator};
+  \node[actor, below=\vspacing of resultCollector] (dataHolder) {Data Holder};
+  \node[actor, right=\hspacing of dataHolder] (clusterListener) {Cluster Listener};
+  \node[actor, right=\hspacing of clusterListener] (reaper) {Reaper};
+  
+  \path let \p1=($(clusterListener.west)-(reaper.east)$),
+            \n1 = {veclen(\p1)-\pgflinewidth}
+    in node[actor, right=\hspacing of resultCollector, minimum width=\n1, xshift=\shiftDim, yshift=\shiftDim] {Worker};
+  \path let \p1=($(clusterListener.west)-(reaper.east)$),
+            \n1 = {veclen(\p1)-\pgflinewidth}
+    in node[actor, right=\hspacing of resultCollector, minimum width=\n1] (worker1) {Worker};
+  
+  \path let \p1=($(worker1.west)-(worker1.east)$),
+  \n1 = {veclen(\p1)-\pgflinewidth}
+  in node[actor, above=\vspacing of worker1, minimum width=\n1] (master) {Master};
+  
+  
+  \begin{scope}[name=systembg, on background layer]
+    \node[draw=black, fill=black!30, fit=(stateReplicator) (dataHolder) (reaper), inner sep=0.4cm] (system) {};
+  \end{scope}
+  \node[below right, background text] at (system.north west) {Actor System Node 2};
+  
+  % define cluster components and align them
+  \node[left=11*\hspacing of system] (clusterCenter) {};
+  \draw (clusterCenter) circle (2*\clusterspacing-.15);
+  
+  \pic[above=\clusterspacing of clusterCenter] {clusterNode=node1};
+  \pic[right=\clusterspacing of clusterCenter] {clusterNode=node2};
+  \pic[below=\clusterspacing of clusterCenter] {clusterNode=node3};
+  \pic[left=\clusterspacing of clusterCenter] {clusterNode=node4};
+  
+  % guides
+  \draw[black, shorten <= 0.3cm, shorten >= 0.3cm] (node2.north east) -- (system.north west);
+  \draw[black, shorten <= 0.3cm, shorten >= 0.3cm] (node2.south east) -- (system.south west);
+  
+  % descriptions
+  \node[below, background text, fill=white] at (node1.south) {Node 1};
+  \node[below, background text, fill=white] at (node2.south) {Node 2};
+  \node[below, background text, fill=white] at (node3.south) {Node 3};
+  \node[below, background text, fill=white] at (node4.south) {Node 4};
+  
+\end{tikzpicture}

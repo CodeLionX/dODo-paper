@@ -2,87 +2,158 @@
 % !TeX encoding = UTF-8
 % !TeX spellcheck = en_US
 
-\section{Approach}\label{sec:approach}
+\section{Distributed discovery of \glspl{od}}\label{sec:approach}
+
+  We now present our approach to \gls{od} discovery, called \dodo{}.
+  First, we explain how \ocddiscover{}~\cite{consonni} traverses the candidate space to find minimal \glspl{ocd} and \glspl{od} in \cref{sec:ocddiscover}.
+  This is the algorithmic foundation of our approach, which we slightly adopt to be able to distribute the discovery across several nodes in a cluster (see \cref{sec:dodo}).
+  \Cref{sec:architecture} then describes \dodo{}'s architecture and \cref{sec:protocols} the communication protocols used to make a \dodo{} cluster fault-tolerant and elastic.
  
-\subsection{\ocddiscover{}}
-%TODO add references
-The \ocddiscover{} algorithm creates the search space for finding \glspl{od} over \glspl{ocd}.
-This can be done, because they prove that whenever there is an \gls{od}, there is also an \gls{ocd} and a functional dependency.
-Using \glspl{ocd} reduces the search space, because they are symmetrical.
+\subsection{The \ocddiscover{} algorithm}\label{sec:ocddiscover}
 
-\Citeauthor{consonni} build the search tree, by testing each candidate for being order compatible.
-If it is not, no children are generated for this candidate.
-If it is order compatible the candidate is checked for being order dependent. 
-If it is we have found a minimal \gls{od} and no children need to be checked, as they would not be minimal.
-If it is not, children to be checked later are generated. 
-This happens by adding a column that does not yet appear on either side of the candidate once to its left and once to its right side~\cite{consonni}.
+  The \ocddiscover{} algorithm creates the search space to find \glspl{od} over \glspl{ocd}~\cite{consonni}.
+  This reduces the number of candidates that the algorithm must check, because \glspl{ocd} are symmetrical.
+  \Citeauthor{consonni} prove that if a \gls{od} holds, than a functional dependency and a \gls{ocd} hold as well.
+  Based on this theorem, they then use a breadth-first search strategy to identify \gls{ocd} relations in the dataset to discover minimal dependencies before longer ones.
 
-\Citeauthor{consonni} proved in their paper, that they would be able to find all minimal \glspl{od} using this method of generating candidates.
-However, as \citeauthor{szlichta:errata} showed in their Errata Note, \citeauthor{consonni} made a mistake in one of their proofs and this method of building the search space does not create minimal \glspl{od} with repeated prefixes~\cite{szlichta:errata}.
+  The \ocddiscover{} algorithm consists of two phases.
+  In the first phase, \ocddiscover{} performs an initial pruning step that removes constant columns and reduces order equivalent columns of the original column set.
+  The constant columns and order equivalent columns are part of the output.
+  They would generate a huge amount of \glspl{od} and those \glspl{od} can easily reconstructed from the result later on.
 
-\subsection{Our architecture}
-\subsubsection{System architecture}
-The cluster we use has a \emph{Peer-to-peer} architecture.
-Every node has the same structure and works on the same kinds of tasks.
-Every node also hold the complete dataset, because the checking of \gls{od} candidates requires access to the contents of all columns.
-The \emph{Peer-to-peer} architecture allows every single node to fail without work getting lost or the algorithm needing to be restarted.
+  In the second phase, the actual \gls{od} discovery takes place.
+  \ocddiscover{} generates \gls{ocd} candidates from the remaining columns in levels, one after the other.
+  For each level the algorithm checks if the \gls{ocd} candidates hold.
+  If a candidate holds, the candidate is further checked for being order dependent, the results are emitted, and child \gls{ocd} candidates are generated.
+  This step includes further pruning rules~\cite{consonni}.
+  If the \gls{ocd} candidate does not hold, no new candidates starting from it are generated.
+  All newly generated candidates are then put into a list for the next level.
 
-The only circumstance during which this is not the case is when the systems is newly started. 
-At the beginning a single node, which we call \emph{Seed node}, is responsible for loading the data, the initial pruning step and the generation of the first set of candidates. 
-If the \emph{Seed node} were to fail during these first steps, the cluster would need to be restarted. 
-As they usually only take a few seconds, though, this seemed to be a reasonable constraint.
+  \Citeauthor{consonni} proved in their paper, that they would be able to find all minimal \glspl{od}.
+  However, as \citeauthor{szlichta:errata} showed in their Errata Note, \citeauthor{consonni} made a mistake in one of their proofs and this method of building the search space does not create minimal \glspl{od} with repeated prefixes~\cite{szlichta:errata}.
 
-To begin working, every node needs the dataset, the information which columns can be pruned and a first set of candidates to check. 
-All nodes that are not the \emph{Seed node} can get the dataset from another node via streaming. 
-Once it is done with pruning, the \emph{Seed node} sends the pruning results to all other nodes in a broadcast.
-A node that joins later can ask any other for this information.
-The distribution of candidates from the \emph{Seed node} to all other nodes in the cluster is done using \emph{Work Stealing} (\cref{protocol:workStealing}), which is described in more detail later.
+\subsection{The \dodo{} algorithm}\label{sec:dodo}
 
-\subsubsection{Node Architecture}
-Every node in the cluster shares the same actors.
-These are both helpful for parallelizing the tasks each node work on as well as structuring the communication in between nodes.
+  We use \citeauthor{consonni}'s work as the basis of our discovery algorithm.
+  Conceptually, \dodo{} works the same as \ocddiscover{}.
+  This means that we also perform a breadth-first search in a \gls{ocd} candidate tree and our algorithm also consists of an initial pruning step followed by the actual search step.
+  However, our implementation of the algorithm differs.
 
-\begin{description}
+  Instead of generating our candidates level-wise, we use a task-based approach with a single task queue.
+  We initiate the task queue with the initial \gls{ocd} candidates comparable to the first level generation by \citeauthor{consonni}.
+  Each task's input is the \gls{ocd} candidate.
+  Its outputs are the results from checking the candidate and a set of new tasks that can be empty.
+  The results are emitted as output and the new tasks (child candidates) are added to the task queue.
+  This is possible, because \gls{ocd} candidate checking and the generation of new candidates is independent from the other candidates~\cite{consonni}.
+  This setup allows us to parallelize the processing, because the tasks in the task queue can be processed independently and concurrently.
+  To distribute our algorithm, we just spread the tasks, ideally evenly, across our cluster.
+
+\subsection{Implementation of the \dodo{} algorithm}\label{sec:architecture}
+
+  We implement the \dodo{} algorithm using Akka~\cite{akka}, Akka Clustering~\cite{akka:clustering} and the Scala programming language~\cite{scala}.
+  Akka is a toolkit for building distributed message-driven applications using the actor programming model that was first introduced in Orleans~\cite{bernstein:orleans}.
+  It provides tools for concurrency, distribution, and elasticity.
+
+  The \dodo{} algorithm is designed as a peer-to-peer cluster.
+  All nodes in the cluster are equal and employ the same internal architecture.
+  The nodes are arranged on a ring, so that every node has two neighbors.
+  Based on this cluster layout, we define communication protocols (see \cref{sec:protocols}) to balance the workload, to recover from node failures, and to allow dynamic cluster sizes.
+  Each node runs its own actor system with the complete set of \dodo{} actors (\cref{sec:node-architecture} describes them in more detail) and works on the checking of \glspl{ocd} and the generation of new \gls{ocd} candidates.
+  \Cref{fig:dodo-architecture} shows the cluster architecture and the internal architecture of the nodes' actor systems exemplarily by node two.
+
+  \begin{figure}
+    \centering
+    \input{pictures/tikz/dodo-architecture}
+    \caption{DODO architecture}
+    \label{fig:dodo-architecture}
+  \end{figure}
+
+  The execution of the \dodo{} algorithm in the cluster is initiated by a seed node.
+  The seed node plays a special role in our cluster and it is the only exception to the peer-to-peer approach.
+  It is started before all other nodes and has the following unique tasks:
+
+  \begin{itemize}
+    \item The seed node is the initial contact point for all nodes that want to join the cluster.
+    \item It always loads the dataset from disk into memory.
+    \item It performs the initial pruning and generates the first \gls{ocd} candidates.
+  \end{itemize}
+
+  The seed node is the first node in the cluster and may be the only one in the cluster for some time.
+  If the seed node fails during this first phase, the whole cluster shuts down and must be restarted.
+  We do not implement resilience for this first phase.
+  This seemed to be a reasonable constraint, though, because the first phase only takes a few seconds.
+
+  After the seed node started up, it immediately starts with the discovery phase.
+  All other nodes that already joined the cluster wait for the seed node to finish data loading and initial pruning.
+  The discovery phase can not start until the seed node removed all constant columns and reduced the order equivalent columns.
+  Therefore, the seed node broadcasts the reduced column set to all joined nodes once it finished pruning them.
+  Our algorithm requires all nodes to have access to the whole dataset, because we do not partition the candidates and every node can check every candidate.
+  This means that nodes load the dataset from their neighbors using data streaming, where the seed node is the data origin.
+
+  Every node needs the dataset, the reduced column set, and some \gls{ocd} candidates to start the discovery.
+  Later joining nodes, therefore, ask their direct neighbors in the ring for the dataset and the reduced column set.
+  The distribution of \gls{ocd} candidates is implemented using a work stealing protocol, which we describe in \cref{protocol:workStealing}.
+
+\subsection{\dodo{} node architecture}\label{sec:node-architecture}
+  Every node in the cluster has the same internal architecture, because the nodes form a peer-to-peer cluster, where all nodes are equal.
+  Every node can become the seed node that performs the initialization steps at the beginning of the algorithm.
+  The node architecture is shown in \cref{fig:dodo-architecture} on the right as an example for node 2.
+  Each node employs its own actor system running actors of seven different actor types.
+
+  \begin{description}
   \item[Master]
-  The \emph{Master actor} is responsible for holding the state of a node.
-  In contains the \emph{Candidate queue} and \emph{Pending queue} and distributes the candidates to the \emph{Worker actors} to be worked on in parallel. 
-  We use a pull-based approach for this distribution of tasks.
-  This means that the \emph{Master} only ever responds to \emph{Workers} asking for candidates and therefore does not have to monitor the state of every single \emph{Worker} of the node.
-  The \emph{Master} also deals with getting new candidates using \emph{Work Stealing} (\cref{protocol:workStealing}), when the \emph{Candidate Queue} is empty and initiates the node shutdown when the \emph{Downing Protocol} (\cref{protocol:downing}) reveals that all \glspl{od} have been found.
-  
-  \item[Worker]
-  A node can have an arbitrary number of \emph{Worker actos}, though the number of available threads - 1 is usually a good estimation for effective resources usage.
-  The \emph{Workers} check candidates, which they get from the \emph{Master} and generate new ones, which they send back for the \emph{Master} to append to the \emph{Candidate Queue}.
-  This checking and generating of candidates is the main task of each node and therefore requires the most resources.
-  All \glspl{od} and \glspl{ocd} the \emph{Worker} finds are send to the \emph{Result Collector} to be recorded into a file. 
-  
-  \item[Data Holder]
-  The \emph{Data Holder actor} is responsible for loading and holding the dataset, for which the \glspl{od} are to be found. 
-  A reference to this dataset is shared with the \emph{Workers} who need it to check candidates.
-  If a path to the dataset is provided to the node on start up, it loads it from the file.
-  If not, the \emph{Data Holder} asks one of their neighbors in the cluster to provide them the dataset via streaming.
-  Once the dataset is loaded, the \emph{Data Holder} notifies the \emph{Master} that the node is ready to start working on checking candidates. 
-  
-  \item[Result Collector]
-  The \emph{Result Collector actor} gets send all found \glspl{od} and \glspl{ocd} by the \emph{Workers}.
-  It collects and counts these results and writes them to a file so they can be recovered even if the node fails unexpectedly. 
-  
-  \item[Cluster Listener]
-  The \emph{Cluster Listener actor}'s task is to determine and share who the neighbors of its node are.
-  Whenever a new node joins the cluster all previous send it references to their \emph{Master} and \emph{State Replicator actors}.
-  The new \emph{Cluster Listener} sends back the corresponding information for its node. \\
-  When the ordering of nodes changes because a node joined or left the cluster, the updated neighbors are send to the \emph{State Replicator}.
-  In contrast, the \emph{Data Holder} only receives information about the neighboring nodes, when it specifically asks for them, because it only needs the information in the beginning to know whom to ask for the dataset.
-  
-  \item[State Replicator]
-  The \emph{State Replicator} holds the state of its neighboring nodes and shares the \emph{Master's} state with them.
-  This enables us to recover work from unexpectedly failed nodes and is explained in more detail in the \emph{State Replicaton Protocol} (see \cref{protocol:stateReplication}).
-  
-  \item[Reaper] 
-  The \emph{Reaper Actor} watches all other actors and cleanly shuts down the system once all of them are terminated.
-\end{description}
+    For each node we use a master-worker pattern to utilize the multi-processing and multi-threading capabilities of the node.
+    The Master actor is the node-local coordinator responsible for holding the processing state and communicating with the other nodes.
+    It uses a data holder actor and a state replicator actor to outsource some of the management logic.
+    Both those actor types are explained later on.
+    The Master actor's state consists of a \gls{ocd} candidate queue and a pending work queue.
+    We use a pull-based approach for the distribution of tasks to Worker actors on a node.
+    An idle Worker asks the Master for the next work packet (a batch of \gls{ocd} candidates) and the Master sends the packet to the Worker actor and moves the candidates to the pending work queue.
+    After receiving the results from the Worker the Master removes the candidates from the pending work queue.
+    This means that the Master does not have to monitor the state of every single Worker.
+    The Master also implements the work stealing protocol (see \cref{protocol:workStealing}) to balance the work across the nodes in the cluster and it initiates the node shutdown when their is no more work left and all \glspl{od} have been found (see \cref{protocol:downing}).
 
-\subsection{Communication Protocols}
+  \item[Worker]
+    A node can have an arbitrary number of Worker actors.
+    We propose to use $n - 1$ Workers, where $n$ is the number of available threads on the node.
+    This ensures that one thread is still available even if the Workers are blocking the threads, which should not occur.
+    The Workers perform the actual work of our algorithm.
+    They check \gls{ocd} and \gls{od} candidates and derive new ones from the found \glspl{ocd}.
+    The new candidates are sent back to the Master.
+    This work consumes most of the processing resources and is therefore spread across multiple Worker actors on each node.
+    The Workers send all found \glspl{ocd} and \glspl{od} to the local Result Collector actor, which records them in a persistent file.
+
+  \item[Result Collector]
+    The Result Collector actor receives the \glspl{od} and \glspl{ocd} from the local Workers.
+    It collects and counts these results and writes them to a file, so they can be recovered even if the node fails unexpectedly.
+
+  \item[Data Holder]
+    The Data Holder actor is responsible for loading the dataset and for storing the dataset in heap.
+    If we provide a file path to a dataset to the node during startup, the Data Holder will load and parse the dataset from disk.
+    It also performs type inference to ensure the correct ordering relation for dates, numbers and text.
+    If no file path is available, the Data Holder asks the node's neighbors on the ring (see Cluster Listener actor) to stream the dataset to it.
+    Once the dataset is loaded in memory, the Data Holder makes the reference available to the Master and the Worker actors.
+    From this point on it is able to stream the dataset to other nodes as well.
+
+  \item[State Replicator]
+    The State Replicator actor is a utility actor for the Master actor.
+    It holds the state of its two neighboring nodes and shares the state of its own local Master actor with them.
+    This enables us to recover work from unexpectedly failed nodes and is explained in more detail in  \cref{protocol:stateReplication}.
+
+  \item[Cluster Listener]
+    Each node in the \dodo{} cluster has a position on a conceptual node-ring.
+    The position is determined based on the node's network address consisting of hostname and port information.
+    Leaving and joining nodes change the arrangement of the nodes on the ring.
+    The Cluster Listener actor is responsible for creating a representation of the ring structure and for listening on cluster events introducing or removing nodes.
+    It determines the position of the local node on the ring and shares the neighboring node's address information with the other local actors.
+    Whenever the neighbors of the local node change, the updated neighbors are sent to the State Replicator to change the target for state updates.
+    In contrast, the Data Holder only receives information about the neighboring nodes, when it specifically asks for them, because it only needs the information when requesting the dataset from another node.
+
+  \item[Reaper]
+    The Reaper actor watches all other actors and cleanly shuts down the local actor system once all of them are terminated.
+  \end{description}
+
+\subsection{Communication protocols}\label{sec:protocols}
 % Questions to be answered for each one:
 % What is its purpose? 
 % When is the protocol started and what is the desired outcome? 
@@ -90,7 +161,7 @@ These are both helpful for parallelizing the tasks each node work on as well as 
 % What Messages are being used?
 % What cases need to be covered? (Early outs etc)
 
-\subsubsection{Work Stealing Protocol} \label{protocol:workStealing}
+\subsubsection{Work stealing protocol}\label{protocol:workStealing}
 % Possible picture (sequence diagram): https://sequencediagram.org/index.html#initialData=C4S2BsFMAIHUHsBOBraBlYkCG4QDsBzaABUXmHgGN5wAoWgFQAsRIAzaPeAE0gFoAfF17QATAC4A4pGAIU4eFm6MW7Tj35CN0AMxSZc5AqUrWHYZovQALPtlIji5VdGDmZ9b3GHj3ABQAjAAMAJS0VjpuquYa3g6+fgBsYVbWUR4WcfJOfgAcYe5qFulFsQwgALaQ8ACuwKalvIIu4hjY4IZ+1gXRnpbatm04naIp2q4ChTFeGDSQeJ3W0JRYeNwg3FiYAM5jImmTvZmzUAsOfqLLq+ubOz0ZGs3j4gCClMgn84YN0-37r+9PmcUEA
 When a node is out of work, either because it just joined the cluster or because all the candidates it checked got pruned and did not generate any new candidates to check, it tries to take over some of the work of the other nodes. 
 This process is called \emph{Work Stealing}.
@@ -111,7 +182,7 @@ Once the \emph{Thief node} receives the candidates, it adds them to its own queu
 To ensure the send candidates arrive and will get processed, the \emph{Victim node} watches the \emph{Thief node}.
 In the case that the \emph{Thief node} fails before it could acknowledge the receipt of the candidates, the \emph{Victim node} moves them back to its own \emph{Candidate queue} from its \emph{Pending queue}.
  
-\subsubsection{Downing Protocol} \label{protocol:downing}
+\subsubsection{Downing protocol}\label{protocol:downing}
 When all \glspl{od} have been found and there are no more candidates to check, the system should shut itself down.
 A node starts the \emph{Downing Protocol}, when it has no more candidates in its \emph{Candidate Queue} and \emph{Pending Queue} and an attempt to get more work using \emph{Work Stealing} was unsuccessful.
 Checking the \emph{Pending Queue} is important because candidates currently being processed could generate new candidates and therefore new work.\\
@@ -121,7 +192,7 @@ The node waits for a response from every other node in the cluster, also being a
 If any of the other nodes respond with a message saying that they are still holding or processing candidates, the node switches from the \emph{Downing} to the \emph{Work Stealing Protocol}.
 If all nodes have either left the cluster or responded that they have no more work, the node shuts itself down.
 
-\subsubsection{State Replication Protocol} \label{protocol:stateReplication}
+\subsubsection{State replication protocol}\label{protocol:stateReplication}
 To ensure any of the nodes of the cluster can fail without any work getting lost, every node regularly replicates its state to two other nodes.
 Because of this, three specific nodes would have to fail simultaneously to permanently lose any unprocessed candidates. 
 In this case, everything would need to be restarted to ensure complete results. \\
