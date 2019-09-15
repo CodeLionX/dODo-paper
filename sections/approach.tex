@@ -170,7 +170,6 @@
   It ensures that no node is idle while the others are still checking candidates and it balances the workload over the cluster.
   The workload of a node is defined by the number of candidates waiting to be processed in its candidate queue.
   Ideally every node would have processed nearly the same number of candidates at the time the algorithm ends.
- % To achieve this goal the Master actors of the different nodes exchange their current workload with each other.\\
 
   The work stealing protocol consists of three phases: preparation, stealing, and acknowledgment.
   It is initiated when a node's candidate queue is empty, even if some of its workers are still processing candidates and might return new ones soon.
@@ -196,14 +195,22 @@
   In the case that the thief fails before it could acknowledge the receipt of the candidates, the victim will recover the to-be-stolen candidates and add them back to its own candidate queue.
 
 \subsubsection{Downing protocol}\label{protocol:downing}
-  When all \glspl{od} have been found and there are no more candidates to check, the system should shut itself down.
-  A node starts the \emph{Downing Protocol}, when it has no more candidates in its \emph{Candidate Queue} and \emph{Pending Queue} and an attempt to get more work using \emph{Work Stealing} was unsuccessful.
-  Checking the \emph{Pending Queue} is important because candidates currently being processed could generate new candidates and therefore new work.\\
-  To ensure that there are no more candidates to be processed and no more candidates being generated in the whole cluster, the node has to ask every other node, whether they are also out of candidates.
-  If another node still holds unprocessed candidates or is still in the process of creating new candidates, these could be redistributed over the cluster using \emph{Work Stealing} so the node can continue to work instead of shutting itself down.
-  The node waits for a response from every other node in the cluster, also being aware of nodes leaving the cluster and subsequently not awaiting their response anymore.\\
-  If any of the other nodes respond with a message saying that they are still holding or processing candidates, the node switches from the \emph{Downing} to the \emph{Work Stealing Protocol}.
+  When all \glspl{od} have been found and there are no more candidates to check, the system should shut itself down cleanly.
+  \dodo{} is distributed across different nodes that act relatively autonomous.
+  This means they have to communicate with each other to figure out if no node has still work left.
+  The downing protocol defines the communication required to achieve a complete and clean shutdown of the cluster ensuring that all \gls{ocd} candidates have been processed.
+
+  A node starts the downing protocol, when it has no more candidates in its candidate queue, all local Worker actors have finished processing, and an attempt to get more work using work stealing was unsuccessful.
+  We have to make sure that no more Workers are processing candidates, because each candidate that is being processed could generate new candidates for the candidate queue.
+  If the three mentioned criteria a fulfilled, a \dodo{} node changes into a downing state, where it is idle and waiting for shutdown.
+  It must now ensure that all other cluster nodes also have no more work left.
+  If another node still holds unprocessed candidates or is still in the process of creating new candidates, these candidates could be redistributed in the cluster using work stealing.
+  This means that the idle node can contribute its resources instead of shutting itself down.
+  Therefore, the node asks all cluster members if they are ready for shutdown.
+  It waits for a response from every other node in the cluster, also being aware of nodes leaving the cluster and subsequently not awaiting their response anymore.
+  If any of the other nodes responds with a message indicating that they are still holding or processing candidates, the node leaves the downing state and starts the work stealing protocol again.
   If all nodes have either left the cluster or responded that they have no more work, the node shuts itself down.
+  This process is the same for all other nodes in the cluster and eventually all nodes will shut down.
 
 \subsubsection{State replication protocol}\label{protocol:stateReplication}
   To ensure any of the nodes of the cluster can fail without any work getting lost, every node regularly replicates its state to two other nodes.
