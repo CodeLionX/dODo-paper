@@ -105,7 +105,7 @@
 \glsdisablehyper
 
 % define acronyms here:
-\newacronym[longplural={order dependencies}]{od}{OD}{order dependency}
+\newacronym[longplural={Order dependencies}]{od}{OD}{order dependency}
 \newacronym[longplural={order compatibility dependencies}]{ocd}{OCD}{order compatibility dependency}
 
 % define special names here (we do not create a glossary, so no descriptions are required)
@@ -148,7 +148,11 @@ Sebastian Schmidl, Juliane Waack\footnote{Hasso-Plattner-Institut, University of
 \setcounter{footnote}{2}
 
 \begin{abstract}
-  Abstract goes here.
+  When dealing with large amounts of data, finding hidden relationships in that data can help both with maintaining and improving data quality and optimizing query performance. 
+  \glspl{od} are among these kinds of hidden relationships.
+  A few solutions for the automatic detection of \glspl{od} have been proposed, all with an at minimum exponential complexity and designed to run on a single system. 
+  In this work we introduce an \gls{od} discovery algorithm, called \dodo{}, which distributes the detection of \glspl{od} across several machines, thereby improving both speed and scalability. 
+  We further evaluate \dodo{} in respect to it's performance, scalability and robstness and demonstrate that we can achieve a significant speed-up compared to the \ocddiscover{} algorithm by \citeauthor{consonni}, which \dodo{} is based on.
 \end{abstract}
 
 \begin{keywords}
