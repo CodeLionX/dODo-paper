@@ -213,32 +213,46 @@
   This process is the same for all other nodes in the cluster and eventually all nodes will shut down.
 
 \subsubsection{State replication protocol}\label{protocol:stateReplication}
-  To ensure any of the nodes of the cluster can fail without any work getting lost, every node regularly replicates its state to two other nodes.
-  Because of this, three specific nodes would have to fail simultaneously to permanently lose any unprocessed candidates.
-  
-  In this case, everything would need to be restarted to ensure complete results. \\
-  Which nodes the state is sent to is decided by their addresses.
-  All nodes in a cluster are ordered by their addresses and every node replicates its state to both its neighbors in this ordering.
-  The first and last node in this ordering are also each others neighbors.\\
-  Every node has a \emph{State Replication Actor} responsible for regularly sending the node's state to its neighbors and processing these neighbor's states when they are sent.
-  It gets the information of who its neighbors are from the \emph{Cluster Listener Actor}. \\
-  In regular intervals, the \emph{State Replicator} asks the \emph{Master Actor} for its current state.
-  The state is a combination of its \emph{Candidate Queue} and \emph{Pending Queue}.
-  On receiving the \emph{Master's} current state, the \emph{State Replicator} sends to both its neighbors with a version number that is continually increased.\\
-  When a \emph{State Replicator} receives the state of one of its neighbors, it checks whether the version number in the new message is higher than the version number of the last state it received from that actor.
-  If this is the case, it saves the new state and version number.
-  If not, is discards the new message, because it already has a more up to date state for that actor.
+  The state replication protocol ensures that a \dodo{} cluster can tolerate complete node failures without losing work.
+  Every node regularly replicates its state to its left and right neighbor in the cluster ring.
+  Only if three neighboring nodes fail simultaneously would \dodo{} lose the unprocessed candidates of one node.
+  In the case of this rare failure scenario, the whole \dodo{} cluster would need to be restarted to ensure complete results.
 
-  \paragraph{A node joins the cluster}
-  When a new node joins the cluster, the \emph{Cluster Listener} updates its ordering of all the nodes in the cluster. 
-  It then sends the \emph{State Replicator} the updated neighbor information.
-  If the nodes neighbor has changed, the \emph{State Replicator} removes the state of the node that is no longer its neighbor and sends its own state to its new neighbor.
-  
-  \paragraph{A node leaves the cluster}
-  When a node leaves the cluster, its two neighbors have to decide which of them will take on the work the leaving node did not finish.
-  They are alerted to their neighbor's leaving by the \emph{Cluster Listener} who also immediately tells them, who their new neighbor is.
+  The basis of the state replication protocol is the node ring, because the node's position on the ring determines the state replication targets.
+  The ring structure is computed by the Cluster Listener actors based on the nodes' network addresses.
+  It is implemented as double linked list, where the last node also holds a reference to the first node and around.
+  Every node replicates its state to its predecessor and successor in this list.
+  The State Replication actors are responsible for sending their nodes' state to its neighbors in a regular interval.
+  They are also the receiving endpoint and storage for the incoming state messages from the other nodes.
+  The state replication interval can be configured by the user of the \dodo{} algorithm.
+
+  If it is time to replicate the state the State Replicator asks the Master for its current state of the candidate queue and the pending work queue.
+  It then takes the neighbor's addresses, received from the local Cluster Listener actor, and sends out the state and an increasing version number to them.
+  The receiving nodes compare the incoming version number with their local state's version.
+  If the new state version is higher, they save the new state and forget the old one.
+  If it is not, they discard the incoming message, because their existing state replica is more recent.
+  We do not use acknowledgments for state transmissions, because the regular replication interval ensures that the replication is tried again in the case of message loss and we want to reduce the stress on the network.
+
+  There is a special case, when a state replication is triggered outside of the regular interval.
+  When a new node joins the cluster, the Cluster Listener updates and reorders its list of all the nodes in the cluster.
+  It then notifies the State Replicator actor about the changed neighbors.
+  If the node's neighbors have changed, the State Replicator sends its own state to its new neighbor right away and marks the state of the node that is no longer its neighbor for deletion.
+  It will be overwritten once the State Replicator received the state of its new neighbor.
+  This ensures that the new node arrangement is quickly reflected in the state replication status and keeps the time, where a node only has one other state replica small.
+
+  In the case of a node failure or when a node leaves the cluster, the cluster must recover the work the leaving node did not finish.
+  Both neighbors of the leaving node are alerted about the event by their local Cluster Listener.
+  The Cluster Listener automatically rearranges the nodes in the ring and informs the State Replicator about the left node and its new neighbor.
   This new neighbor was the leaving nodes other neighbor.
-  To determine which of the two has the most up to date state of the leaving node, they share the version number of the leaving node's state. 
-  The node with the higher version number adds the leaving nodes state to its own \emph{Candidate Queue} to ensure all candidates get processed. 
-  The node with the lower version number deletes the state of the leaving node.
-  The two nodes then share their state with each other. 
+  This means that the new neighbor also holds a replica of the left node's state.
+  To determine which of the two nodes has the most up to date state of the leaving node, they exchange the version numbers of their state replicas.
+  The node with the higher version number adds the leaving nodes state to its own candidate queue to ensure that all candidates get processed.
+  The node with the lower version number deletes its local copy of the leaving node's state.
+  The two nodes then share their updated state with each other to reach a three-fold state replication for all nodes again.
+
+  There might have elapsed some time between the last state replication and the node failure.
+  This means that the failing node processed candidates that produced results and new candidates that are not reflected in the state replicas.
+  The new candidates are no problem, because they can be recomputed from the existing candidates in the state replica.
+  The candidate generation and pruning is deterministic.
+  The results were made persistent on the local disk of the failed node and can be recovered.
+  However, as some candidates are processed by the failed node and the node that recovered the state, \dodo{} will produce duplicate results in the presence of node failures.
