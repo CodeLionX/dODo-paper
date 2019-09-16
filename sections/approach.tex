@@ -224,13 +224,13 @@
 
   The basis of the state replication protocol is the node ring, because the node's position on the ring determines the state replication targets.
   The ring structure is computed by the Cluster Listener actors based on the nodes' network addresses.
-  It is implemented as double linked list, where the last node also holds a reference to the first node and around.
+  It is implemented as double linked list, where the last node also holds a reference to the first node and the other way around.
   Every node replicates its state to its predecessor and successor in this list.
   The State Replication actors are responsible for sending their nodes' state to its neighbors in a regular interval.
   They are also the receiving endpoint and storage for the incoming state messages from the other nodes.
   The state replication interval can be configured by the user of the \dodo{} algorithm.
 
-  If it is time to replicate the state the State Replicator asks the Master for its current state of the candidate queue and the pending work queue.
+  When it is time to replicate the state the State Replicator asks the Master for its current state of the candidate queue and the pending work queue.
   It then takes the neighbor's addresses, received from the local Cluster Listener actor, and sends out the state and an increasing version number to them.
   The receiving nodes compare the incoming version number with their local state's version.
   If the new state version is higher, they save the new state and forget the old one.
@@ -254,7 +254,7 @@
   The node with the lower version number deletes its local copy of the leaving node's state.
   The two nodes then share their updated state with each other to reach a three-fold state replication for all nodes again.
 
-  There might have elapsed some time between the last state replication and the node failure.
+  Some time might have elapsed between the last state replication and the node failure.
   This means that in the meantime the failing node generated candidates that are not reflected in the state replicas.
   The new candidates are no problem, because they can be recomputed from the existing candidates in the state replica.
   The results were made persistent on the local disk of the failed node and can be recovered.
