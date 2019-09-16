@@ -17,7 +17,8 @@
   \dodo{} is implemented in Scala and the nodes run it with Java 1.8 with the Java JVM heap space limited to 40~GB.
   We adopted the \textit{flight\_1k} dataset available from the Information Systems Group at Hasso Plattner Institute\footnote{\url{https://hpi.de/naumann/projects/repeatability/data-profiling/fds.html}} to reduce the computation time to an order of minutes.
   This was achieved by removing sparse columns%
-  \footnote{Removed columns: ArrivalDelayGroups, CancellationCode, Cancelled, CarrierDelay, CRSArrTime, DepartureDelayGroups, DepTimeBlk, Dest, DestAirportID, DestAirportSeqID, DestCityMarketID, DestCityName, DestState, DestStateFips, DestStateName, DestWac, DistanceGroup, Div1Airport, Div1AirportID, Div1AirportSeqID, Div1LongestGTime, Div1TailNum, Div1TotalGTime, Div1WheelsOff, Div1WheelsOn, Div2Airport, Div2AirportID, Div2AirportSeqID, Div2LongestGTime, Div2TailNum, Div2TotalGTime, Div2WheelsOff, Div2WheelsOn, Div3Airport, Div3AirportID, Div3AirportSeqID, Div3LongestGTime, Div3TailNum, Div3TotalGTime, Div3WheelsOff, Div3WheelsOn, Div4Airport, Div4AirportID, Div4AirportSeqID, Div4LongestGTime, Div4TailNum, Div4TotalGTime, Div4WheelsOff, Div4WheelsOn, Div5Airport, Div5AirportID, Div5AirportSeqID, Div5LongestGTime, Div5TailNum, Div5TotalGTime, Div5WheelsOff, Div5WheelsOn, DivActualElapsedTime, DivAirportLandings, DivArrDelay, DivDistance, DivReachedDest, FirstDepTime, LateAircraftDelay, LongestAddGTime, NASDelay, SecurityDelay, TaxiIn, TaxiOut, TotalAddGTime, WeatherDelay, WheelsOff, WheelsOn}.
+  %\footnote{Removed columns: ArrivalDelayGroups, CancellationCode, Cancelled, CarrierDelay, CRSArrTime, DepartureDelayGroups, DepTimeBlk, Dest, DestAirportID, DestAirportSeqID, DestCityMarketID, DestCityName, DestState, DestStateFips, DestStateName, DestWac, DistanceGroup, Div1Airport, Div1AirportID, Div1AirportSeqID, Div1LongestGTime, Div1TailNum, Div1TotalGTime, Div1WheelsOff, Div1WheelsOn, Div2Airport, Div2AirportID, Div2AirportSeqID, Div2LongestGTime, Div2TailNum, Div2TotalGTime, Div2WheelsOff, Div2WheelsOn, Div3Airport, Div3AirportID, Div3AirportSeqID, Div3LongestGTime, Div3TailNum, Div3TotalGTime, Div3WheelsOff, Div3WheelsOn, Div4Airport, Div4AirportID, Div4AirportSeqID, Div4LongestGTime, Div4TailNum, Div4TotalGTime, Div4WheelsOff, Div4WheelsOn, Div5Airport, Div5AirportID, Div5AirportSeqID, Div5LongestGTime, Div5TailNum, Div5TotalGTime, Div5WheelsOff, Div5WheelsOn, DivActualElapsedTime, DivAirportLandings, DivArrDelay, DivDistance, DivReachedDest, FirstDepTime, LateAircraftDelay, LongestAddGTime, NASDelay, SecurityDelay, TaxiIn, TaxiOut, TotalAddGTime, WeatherDelay, WheelsOff, WheelsOn}%
+  .
   We ended up with a dataset consisting of 1000 rows and 36 columns: \textit{flight\_r1k\_c36}.
 
 \subsection{Correctness and fault-tolerance}\label{sec:evaluation:correctness}
@@ -99,7 +100,7 @@
     \begin{subfigure}[c]{0.6\textwidth}
       \centering
       \input{pictures/tikz/dodo-scaling}
-      \caption{Computation time speedup of \dodo{} compared to theoretical $85 \%$ and $90 \%$ speedup.}
+      \caption{Computation time speedup of \dodo{} compared to theoretical $85 \%$ and $90 \%$ parallel code.}
       \label{fig:fig:node-scaling}
     \end{subfigure}
     \begin{subtable}[c]{0.39\textwidth}
@@ -128,6 +129,7 @@
   We find that using \dodo{} in a cluster setup greatly reduces overall computation time despite the additional effort spend on node discovery, state replication and inter-node synchronization.
   Finding all \glspl{od} in our test dataset takes about three and a half minutes on a single node.
   This time is already reduced to under a minute when using six or more nodes in the \dodo{} cluster.
-  As we can see in \cref{fig:fig:node-scaling}, \dodo{} can achieve a speedup between $85 \%$ and $90 \%$.
+  As we can see in \cref{fig:fig:node-scaling}, \dodo{} can achieve a speedup of 4.3 for eight nodes compared to the single node setup.
+  This indicates that between $85 \%$ and $90 \%$ of \dodo{}'s code is executable in parallel.
   The outliers in the diagram can be explained by our downing protocol implementation, which waits for all nodes to come to a mutual decision that all candidates were processed before shutting down nodes.
   This protocol can delay the shutdown procedure when the timeouts do overlap just slightly or one node still works on the last \glspl{ocd} candidates.
