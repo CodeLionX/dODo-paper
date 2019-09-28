@@ -6,7 +6,7 @@ Paper about https://github.com/CodeLionX/dODo
 ## Abstract
 
 When dealing with large amounts of data, finding hidden relationships in that data can help with maintaining and improving data quality and optimizing query performance.
-ODs are among these kinds of hidden relationships.
+Order dependencies (ODs) are among these kinds of hidden relationships.
 A few solutions for the automatic detection of ODs have been proposed.
 All of them are designed to run on a single system and have at least exponential runtime complexity.
 In this work we introduce an OD discovery algorithm, called DODO, that distributes the detection of ODs across several machines in a cluster, thereby improving both speed and scalability.
