@@ -1,6 +1,21 @@
 # dODo Paper repository [![Build Status](https://travis-ci.com/CodeLionX/dODo-paper.svg?token=pqFUU2qudhkNenBcNwxf&branch=master)](https://travis-ci.com/CodeLionX/dODo-paper)
 Paper about https://github.com/CodeLionX/dODo
 
+**The PDF version of this paper is included in this repository. You can download it from [`dODo-paper.pdf`](https://github.com/CodeLionX/dODo-paper/raw/master/dODo-paper.pdf).**
+
+## Abstract
+
+When dealing with large amounts of data, finding hidden relationships in that data can help with maintaining and improving data quality and optimizing query performance.
+ODs are among these kinds of hidden relationships.
+A few solutions for the automatic detection of ODs have been proposed.
+All of them are designed to run on a single system and have at least exponential runtime complexity.
+In this work we introduce an OD discovery algorithm, called DODO, that distributes the detection of ODs across several machines in a cluster, thereby improving both speed and scalability.
+DODO is built to be fault-tolerant and to work with a dynamically changing cluster size.
+We evaluate DODO in respect to its performance, scalability and robustness.
+We demonstrate that the single node setup of DODO is about twice as fast as the OCDDISCOVER algorithm by Consonni et al., which DODO is based on.
+Running DODO distributed across multiple nodes achieves a significant speed-up compared to the single node setup.
+This shows how distribution can be used to increase performance for OD discovery algorithms, which are limited by the power of the processors they are run on.
+
 ## Contents
 
 The main file is called `paper.tex`.
